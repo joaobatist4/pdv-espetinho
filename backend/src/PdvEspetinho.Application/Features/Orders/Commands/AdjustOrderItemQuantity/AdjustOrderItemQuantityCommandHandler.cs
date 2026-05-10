@@ -4,25 +4,25 @@ using PdvEspetinho.Application.Common.Interfaces;
 using PdvEspetinho.Domain.Enums;
 using PdvEspetinho.Domain.Repositories;
 
-namespace PdvEspetinho.Application.Features.Orders.Commands.RemoveOrderItem;
+namespace PdvEspetinho.Application.Features.Orders.Commands.AdjustOrderItemQuantity;
 
-public class RemoveOrderItemCommandHandler(
+public class AdjustOrderItemQuantityCommandHandler(
     IOrderRepository orderRepository,
     ITableRepository tableRepository,
-    IUnitOfWork unitOfWork)
-    : IRequestHandler<RemoveOrderItemCommand, Result>
+    IUnitOfWork unitOfWork) : IRequestHandler<AdjustOrderItemQuantityCommand, Result>
 {
-    public async Task<Result> Handle(RemoveOrderItemCommand request, CancellationToken ct)
+    public async Task<Result> Handle(AdjustOrderItemQuantityCommand request, CancellationToken ct)
     {
         var order = await orderRepository.GetByIdAsync(request.OrderId, ct);
         if (order is null)
             return Result.Fail("Pedido não encontrado.");
 
-        if (!order.RemoveItem(request.ItemId))
+        if (!order.AdjustItemQuantity(request.ItemId, request.Delta))
             return Result.Fail("Item não encontrado no pedido.");
 
         await orderRepository.UpdateAsync(order, ct);
 
+        // Se ficou sem itens, libera a mesa
         if (order.Items.Count == 0)
         {
             var table = await tableRepository.GetByIdAsync(order.TableId, ct);

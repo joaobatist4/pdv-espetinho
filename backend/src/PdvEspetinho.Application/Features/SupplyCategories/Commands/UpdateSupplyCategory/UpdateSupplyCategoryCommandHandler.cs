@@ -1,10 +1,13 @@
 using FluentResults;
 using MediatR;
+using PdvEspetinho.Application.Common.Interfaces;
 using PdvEspetinho.Domain.Repositories;
 
 namespace PdvEspetinho.Application.Features.SupplyCategories.Commands.UpdateSupplyCategory;
 
-public class UpdateSupplyCategoryCommandHandler(ISupplyCategoryRepository repository) : IRequestHandler<UpdateSupplyCategoryCommand, Result>
+public class UpdateSupplyCategoryCommandHandler(
+    ISupplyCategoryRepository repository,
+    IUnitOfWork unitOfWork) : IRequestHandler<UpdateSupplyCategoryCommand, Result>
 {
     public async Task<Result> Handle(UpdateSupplyCategoryCommand request, CancellationToken ct)
     {
@@ -14,6 +17,7 @@ public class UpdateSupplyCategoryCommandHandler(ISupplyCategoryRepository reposi
 
         cat.Update(request.Name, request.Icon, request.SortOrder);
         await repository.UpdateAsync(cat, ct);
+        await unitOfWork.CommitAsync(ct);
         return Result.Ok();
     }
 }

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ordersService } from '../../services/orders.service'
 import { C, orderItemStatusColors } from '../../lib/tokens'
-import { Badge, Card, Modal, PageHeader, Empty, useToast } from '../../components/ui'
+import { Badge, Btn, Card, Modal, PageHeader, Empty, useToast } from '../../components/ui'
 import type { OrderItemStatus } from '../../types'
 import { fmt, fmtElapsed } from '../../lib/utils'
 
@@ -38,6 +38,18 @@ export default function OrdersPage() {
       if (labels[status]) showToast(labels[status])
     },
   })
+
+  const cancelOrder = useMutation({
+    mutationFn: (orderId: string) => ordersService.cancel(orderId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['open-orders'] })
+      qc.invalidateQueries({ queryKey: ['tables'] })
+      setSelected(null); setConfirmCancel(false)
+      showToast('🗑️ Pedido cancelado')
+    },
+  })
+
+  const [confirmCancel, setConfirmCancel] = useState(false)
 
   const selOrder = selected ? orders.find((o) => o.id === selected) : null
 
@@ -82,7 +94,7 @@ export default function OrdersPage() {
                       return (
                         <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div style={{ fontSize: 13, color: C.text }}>{item.quantity}× {item.productName}</div>
-                          <Badge color={sc.bg} textColor={sc.text}>{sc.label}</Badge>
+                          {item.goesToKitchen && <Badge color={sc.bg} textColor={sc.text}>{sc.label}</Badge>}
                         </div>
                       )
                     })}
@@ -106,8 +118,11 @@ export default function OrdersPage() {
               const sc = orderItemStatusColors[item.status]
               const canAdvance = item.goesToKitchen && item.status !== 'Entregue'
               const next = nextStatus[item.status]
+              // Itens diretos (não vão à cozinha) têm fundo neutro e sem badge de status
+              const bg = item.goesToKitchen ? sc.bg + '66' : C.bg
+              const border = item.goesToKitchen ? `1px solid ${sc.bg}` : `1px solid ${C.border}`
               return (
-                <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 10, background: sc.bg + '66', border: `1px solid ${sc.bg}` }}>
+                <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 10, background: bg, border }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{item.quantity}× {item.productName}</div>
                     <div style={{ fontSize: 12, color: C.textMid, marginTop: 2 }}>
@@ -115,7 +130,9 @@ export default function OrdersPage() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-                    <Badge color={sc.bg} textColor={sc.text}>{sc.label}</Badge>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{fmt(item.total)}</span>
+                    {/* Status e avanço apenas para itens de cozinha */}
+                    {item.goesToKitchen && <Badge color={sc.bg} textColor={sc.text}>{sc.label}</Badge>}
                     {canAdvance && next && (
                       <button onClick={() => updateStatus.mutate({ orderId: selOrder.id, itemId: item.id, status: next })} style={{ border: 'none', background: C.amber, color: '#fff', borderRadius: 6, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
                         {nextLabels[item.status]}
@@ -125,8 +142,31 @@ export default function OrdersPage() {
                 </div>
               )
             })}
+            <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 14, display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={() => setConfirmCancel(true)} style={{ border: 'none', background: 'transparent', color: C.danger, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>
+                🗑️ Cancelar este pedido
+              </button>
+            </div>
           </div>
         )}
+      </Modal>
+
+      <Modal open={confirmCancel} onClose={() => setConfirmCancel(false)} title="Cancelar pedido" width={420}>
+        <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ background: C.dangerBg, borderRadius: 10, padding: '14px 16px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+            <div style={{ fontSize: 22 }}>⚠️</div>
+            <div style={{ fontSize: 13, color: C.danger, lineHeight: 1.5 }}>
+              <div style={{ fontWeight: 700, marginBottom: 4 }}>Esta ação não pode ser desfeita.</div>
+              Todos os itens serão descartados e a mesa voltará ao status <b>Livre</b>. O cancelamento não gera venda.
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <Btn variant="secondary" onClick={() => setConfirmCancel(false)} style={{ flex: 1, justifyContent: 'center' }}>Voltar</Btn>
+            <Btn variant="danger" onClick={() => selOrder && cancelOrder.mutate(selOrder.id)} disabled={cancelOrder.isPending} style={{ flex: 1, justifyContent: 'center' }} icon="🗑️">
+              {cancelOrder.isPending ? 'Cancelando…' : 'Confirmar'}
+            </Btn>
+          </div>
+        </div>
       </Modal>
 
       <ToastContainer />

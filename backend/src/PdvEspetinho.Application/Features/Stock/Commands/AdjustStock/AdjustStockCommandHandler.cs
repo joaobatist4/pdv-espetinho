@@ -1,12 +1,14 @@
 using FluentResults;
 using MediatR;
+using PdvEspetinho.Application.Common.Interfaces;
 using PdvEspetinho.Domain.Entities;
 using PdvEspetinho.Domain.Repositories;
 
 namespace PdvEspetinho.Application.Features.Stock.Commands.AdjustStock;
 
-public class AdjustStockCommandHandler(IStockItemRepository stockItemRepository)
-    : IRequestHandler<AdjustStockCommand, Result>
+public class AdjustStockCommandHandler(
+    IStockItemRepository stockItemRepository,
+    IUnitOfWork unitOfWork) : IRequestHandler<AdjustStockCommand, Result>
 {
     public async Task<Result> Handle(AdjustStockCommand request, CancellationToken ct)
     {
@@ -25,6 +27,7 @@ public class AdjustStockCommandHandler(IStockItemRepository stockItemRepository)
             await stockItemRepository.UpdateAsync(item, ct);
         }
 
+        await unitOfWork.CommitAsync(ct);
         return Result.Ok();
     }
 }

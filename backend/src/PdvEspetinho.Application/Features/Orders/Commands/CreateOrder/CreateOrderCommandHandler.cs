@@ -1,5 +1,6 @@
 using FluentResults;
 using MediatR;
+using PdvEspetinho.Application.Common.Interfaces;
 using PdvEspetinho.Domain.Entities;
 using PdvEspetinho.Domain.Repositories;
 
@@ -7,7 +8,8 @@ namespace PdvEspetinho.Application.Features.Orders.Commands.CreateOrder;
 
 public class CreateOrderCommandHandler(
     IOrderRepository orderRepository,
-    ITableRepository tableRepository) : IRequestHandler<CreateOrderCommand, Result<Guid>>
+    ITableRepository tableRepository,
+    IUnitOfWork unitOfWork) : IRequestHandler<CreateOrderCommand, Result<Guid>>
 {
     public async Task<Result<Guid>> Handle(CreateOrderCommand request, CancellationToken ct)
     {
@@ -22,6 +24,7 @@ public class CreateOrderCommandHandler(
         var order = Order.Create(request.TableId, request.AttendantId);
         await orderRepository.AddAsync(order, ct);
 
+        await unitOfWork.CommitAsync(ct);
         return Result.Ok(order.Id);
     }
 }

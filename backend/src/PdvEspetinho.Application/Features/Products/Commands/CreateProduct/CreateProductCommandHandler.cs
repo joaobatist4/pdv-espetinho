@@ -1,5 +1,6 @@
 using FluentResults;
 using MediatR;
+using PdvEspetinho.Application.Common.Interfaces;
 using PdvEspetinho.Domain.Entities;
 using PdvEspetinho.Domain.Repositories;
 
@@ -7,7 +8,8 @@ namespace PdvEspetinho.Application.Features.Products.Commands.CreateProduct;
 
 public class CreateProductCommandHandler(
     IProductRepository productRepository,
-    IStockItemRepository stockItemRepository) : IRequestHandler<CreateProductCommand, Result<Guid>>
+    IStockItemRepository stockItemRepository,
+    IUnitOfWork unitOfWork) : IRequestHandler<CreateProductCommand, Result<Guid>>
 {
     public async Task<Result<Guid>> Handle(CreateProductCommand request, CancellationToken ct)
     {
@@ -23,6 +25,7 @@ public class CreateProductCommandHandler(
             await stockItemRepository.AddAsync(stock, ct);
         }
 
+        await unitOfWork.CommitAsync(ct);
         return Result.Ok(product.Id);
     }
 }

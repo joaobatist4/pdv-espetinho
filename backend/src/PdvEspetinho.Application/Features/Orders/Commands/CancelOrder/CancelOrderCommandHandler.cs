@@ -1,5 +1,6 @@
 using FluentResults;
 using MediatR;
+using PdvEspetinho.Application.Common.Interfaces;
 using PdvEspetinho.Domain.Enums;
 using PdvEspetinho.Domain.Repositories;
 
@@ -7,7 +8,8 @@ namespace PdvEspetinho.Application.Features.Orders.Commands.CancelOrder;
 
 public class CancelOrderCommandHandler(
     IOrderRepository orderRepository,
-    ITableRepository tableRepository) : IRequestHandler<CancelOrderCommand, Result>
+    ITableRepository tableRepository,
+    IUnitOfWork unitOfWork) : IRequestHandler<CancelOrderCommand, Result>
 {
     public async Task<Result> Handle(CancelOrderCommand request, CancellationToken ct)
     {
@@ -28,6 +30,7 @@ public class CancelOrderCommandHandler(
             await tableRepository.UpdateAsync(table, ct);
         }
 
+        await unitOfWork.CommitAsync(ct);
         return Result.Ok();
     }
 }

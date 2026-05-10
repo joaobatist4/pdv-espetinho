@@ -10,6 +10,9 @@ public class ProductRepository(ApplicationContext context) : IProductRepository
     public Task<Product?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
         context.Products.Include(p => p.Category).FirstOrDefaultAsync(p => p.Id == id, ct);
 
+    public async Task<IEnumerable<Product>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct = default) =>
+        await context.Products.Where(p => ids.Contains(p.Id)).ToListAsync(ct);
+
     public async Task<IEnumerable<Product>> GetActiveByCategoryAsync(Guid categoryId, CancellationToken ct = default) =>
         await context.Products
             .Include(p => p.Category)
@@ -23,15 +26,12 @@ public class ProductRepository(ApplicationContext context) : IProductRepository
             .OrderBy(p => p.Name)
             .ToListAsync(ct);
 
-    public async Task AddAsync(Product product, CancellationToken ct = default)
-    {
+    public async Task AddAsync(Product product, CancellationToken ct = default) =>
         await context.Products.AddAsync(product, ct);
-        await context.SaveChangesAsync(ct);
-    }
 
-    public async Task UpdateAsync(Product product, CancellationToken ct = default)
+    public Task UpdateAsync(Product product, CancellationToken ct = default)
     {
         context.Products.Update(product);
-        await context.SaveChangesAsync(ct);
+        return Task.CompletedTask;
     }
 }

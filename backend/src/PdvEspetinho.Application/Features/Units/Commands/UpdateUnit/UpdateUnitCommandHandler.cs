@@ -1,10 +1,13 @@
 using FluentResults;
 using MediatR;
+using PdvEspetinho.Application.Common.Interfaces;
 using PdvEspetinho.Domain.Repositories;
 
 namespace PdvEspetinho.Application.Features.Units.Commands.UpdateUnit;
 
-public class UpdateUnitCommandHandler(IUnitRepository repository) : IRequestHandler<UpdateUnitCommand, Result>
+public class UpdateUnitCommandHandler(
+    IUnitRepository repository,
+    IUnitOfWork unitOfWork) : IRequestHandler<UpdateUnitCommand, Result>
 {
     public async Task<Result> Handle(UpdateUnitCommand request, CancellationToken ct)
     {
@@ -14,6 +17,7 @@ public class UpdateUnitCommandHandler(IUnitRepository repository) : IRequestHand
 
         unit.Update(request.Name, request.Label, request.SortOrder);
         await repository.UpdateAsync(unit, ct);
+        await unitOfWork.CommitAsync(ct);
         return Result.Ok();
     }
 }

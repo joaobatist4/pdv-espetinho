@@ -27,16 +27,17 @@ export const ordersService = {
       orderId,
       items: items.map((i) => ({
         productId: i.productId,
-        productName: i.productName,
-        unitPrice: i.unitPrice,
         quantity: i.quantity,
-        goesToKitchen: i.goesToKitchen,
       })),
     })
   },
 
   updateItemStatus: async (orderId: string, itemId: string, status: OrderItemStatus): Promise<void> => {
     await api.patch(`/orders/${orderId}/items/${itemId}/status`, { status })
+  },
+
+  adjustItemQuantity: async (orderId: string, itemId: string, delta: number): Promise<void> => {
+    await api.patch(`/orders/${orderId}/items/${itemId}/quantity`, { delta })
   },
 
   removeItem: async (orderId: string, itemId: string): Promise<void> => {

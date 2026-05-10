@@ -13,15 +13,12 @@ public class CategoryRepository(ApplicationContext context) : ICategoryRepositor
     public async Task<IEnumerable<Category>> GetAllAsync(CancellationToken ct = default) =>
         await context.Categories.OrderBy(c => c.SortOrder).ToListAsync(ct);
 
-    public async Task AddAsync(Category category, CancellationToken ct = default)
-    {
+    public async Task AddAsync(Category category, CancellationToken ct = default) =>
         await context.Categories.AddAsync(category, ct);
-        await context.SaveChangesAsync(ct);
-    }
 
-    public async Task UpdateAsync(Category category, CancellationToken ct = default)
+    public Task UpdateAsync(Category category, CancellationToken ct = default)
     {
         context.Categories.Update(category);
-        await context.SaveChangesAsync(ct);
+        return Task.CompletedTask;
     }
 }

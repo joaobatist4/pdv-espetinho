@@ -15,7 +15,7 @@ public class OrderItem : Entity
 
     private OrderItem() { }
 
-    internal static OrderItem Create(
+    public static OrderItem Create(
         Guid orderId,
         Guid productId,
         string productName,
@@ -31,8 +31,14 @@ public class OrderItem : Entity
             UnitPrice = unitPrice,
             Quantity = quantity,
             GoesToKitchen = goesToKitchen,
-            Status = OrderItemStatus.Aguardando
+            Status = goesToKitchen ? OrderItemStatus.Aguardando : OrderItemStatus.Entregue
         };
+    }
+
+    public void AddQuantity(int qty)
+    {
+        Quantity += qty;
+        SetUpdatedAt();
     }
 
     public void UpdateStatus(OrderItemStatus status)

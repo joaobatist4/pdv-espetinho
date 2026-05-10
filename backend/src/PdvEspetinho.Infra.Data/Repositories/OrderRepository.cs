@@ -23,15 +23,29 @@ public class OrderRepository(ApplicationContext context) : IOrderRepository
             .OrderBy(o => o.OpenedAt)
             .ToListAsync(ct);
 
-    public async Task AddAsync(Order order, CancellationToken ct = default)
-    {
+    public async Task AddAsync(Order order, CancellationToken ct = default) =>
         await context.Orders.AddAsync(order, ct);
-        await context.SaveChangesAsync(ct);
-    }
 
-    public async Task UpdateAsync(Order order, CancellationToken ct = default)
+    public Task UpdateAsync(Order order, CancellationToken ct = default)
     {
-        context.Orders.Update(order);
-        await context.SaveChangesAsync(ct);
+        // Itens novos (criados fora do tracker) → Added
+        foreach (var item in order.Items)
+        {
+            var entry = context.Entry(item);
+            if (entry.State == EntityState.Detached)
+                entry.State = EntityState.Added;
+        }
+
+        // Itens que foram removidos da coleção mas ainda estão no tracker → Deleted
+        var removedItems = context.ChangeTracker
+            .Entries<OrderItem>()
+            .Where(e => e.Entity.OrderId == order.Id
+                     && e.State == EntityState.Unchanged
+                     && !order.Items.Any(i => i.Id == e.Entity.Id));
+
+        foreach (var entry in removedItems)
+            entry.State = EntityState.Deleted;
+
+        return Task.CompletedTask;
     }
 }

@@ -1,12 +1,14 @@
 using FluentResults;
 using MediatR;
+using PdvEspetinho.Application.Common.Interfaces;
 using PdvEspetinho.Domain.Entities;
 using PdvEspetinho.Domain.Repositories;
 
 namespace PdvEspetinho.Application.Features.Users.Commands.CreateUser;
 
-public class CreateUserCommandHandler(IUserRepository userRepository)
-    : IRequestHandler<CreateUserCommand, Result<Guid>>
+public class CreateUserCommandHandler(
+    IUserRepository userRepository,
+    IUnitOfWork unitOfWork) : IRequestHandler<CreateUserCommand, Result<Guid>>
 {
     public async Task<Result<Guid>> Handle(CreateUserCommand request, CancellationToken ct)
     {
@@ -18,6 +20,7 @@ public class CreateUserCommandHandler(IUserRepository userRepository)
         var user = User.Create(request.Name, request.Email, hash, request.Role, request.Permissions);
 
         await userRepository.AddAsync(user, ct);
+        await unitOfWork.CommitAsync(ct);
         return Result.Ok(user.Id);
     }
 }

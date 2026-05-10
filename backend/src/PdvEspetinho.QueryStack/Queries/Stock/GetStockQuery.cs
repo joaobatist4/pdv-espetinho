@@ -16,6 +16,7 @@ public class GetStockQuery(QueryDb queryDb)
               FROM stock_items si
               JOIN products p ON p.id = si.product_id
               JOIN categories c ON c.id = p.category_id
+              WHERE p.has_stock = true AND p.is_active = true
               ORDER BY p.name");
 
         return rows.Select(r => new StockItemDto(

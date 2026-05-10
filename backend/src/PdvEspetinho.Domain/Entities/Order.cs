@@ -33,15 +33,15 @@ public class Order : Entity
         return order;
     }
 
-    public void AddItems(IEnumerable<(Guid ProductId, string Name, decimal Price, int Qty, bool GoesToKitchen)> items)
+    public void AddItems(IEnumerable<OrderItem> items)
     {
-        foreach (var (productId, name, price, qty, goesToKitchen) in items)
+        foreach (var item in items)
         {
-            var existing = _items.FirstOrDefault(i => i.ProductId == productId && i.Status == OrderItemStatus.Aguardando);
+            var existing = _items.FirstOrDefault(i => i.ProductId == item.ProductId);
             if (existing is not null)
-                _items.Remove(existing);
-
-            _items.Add(OrderItem.Create(Id, productId, name, price, qty, goesToKitchen));
+                existing.AddQuantity(item.Quantity);
+            else
+                _items.Add(item);
         }
         _domainEvents.Add(new OrderItemsAddedEvent(Id, TableId));
         SetUpdatedAt();
@@ -52,6 +52,20 @@ public class Order : Entity
         var item = _items.FirstOrDefault(i => i.Id == itemId);
         if (item is null) return false;
         _items.Remove(item);
+        SetUpdatedAt();
+        return true;
+    }
+
+    public bool AdjustItemQuantity(Guid itemId, int delta)
+    {
+        var item = _items.FirstOrDefault(i => i.Id == itemId);
+        if (item is null) return false;
+
+        if (item.Quantity + delta <= 0)
+            _items.Remove(item);
+        else
+            item.AddQuantity(delta);
+
         SetUpdatedAt();
         return true;
     }

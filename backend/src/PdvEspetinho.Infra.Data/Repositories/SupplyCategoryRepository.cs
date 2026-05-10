@@ -13,15 +13,12 @@ public class SupplyCategoryRepository(ApplicationContext context) : ISupplyCateg
     public async Task<IEnumerable<SupplyCategory>> GetAllAsync(CancellationToken ct = default) =>
         await context.SupplyCategories.OrderBy(sc => sc.SortOrder).ThenBy(sc => sc.Name).ToListAsync(ct);
 
-    public async Task AddAsync(SupplyCategory supplyCategory, CancellationToken ct = default)
-    {
+    public async Task AddAsync(SupplyCategory supplyCategory, CancellationToken ct = default) =>
         await context.SupplyCategories.AddAsync(supplyCategory, ct);
-        await context.SaveChangesAsync(ct);
-    }
 
-    public async Task UpdateAsync(SupplyCategory supplyCategory, CancellationToken ct = default)
+    public Task UpdateAsync(SupplyCategory supplyCategory, CancellationToken ct = default)
     {
         context.SupplyCategories.Update(supplyCategory);
-        await context.SaveChangesAsync(ct);
+        return Task.CompletedTask;
     }
 }

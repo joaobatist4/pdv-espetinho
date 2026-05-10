@@ -1,11 +1,13 @@
 using FluentResults;
 using MediatR;
+using PdvEspetinho.Application.Common.Interfaces;
 using PdvEspetinho.Domain.Repositories;
 
 namespace PdvEspetinho.Application.Features.Tables.Commands.UpdateTable;
 
-public class UpdateTableCommandHandler(ITableRepository tableRepository)
-    : IRequestHandler<UpdateTableCommand, Result>
+public class UpdateTableCommandHandler(
+    ITableRepository tableRepository,
+    IUnitOfWork unitOfWork) : IRequestHandler<UpdateTableCommand, Result>
 {
     public async Task<Result> Handle(UpdateTableCommand request, CancellationToken ct)
     {
@@ -17,6 +19,7 @@ public class UpdateTableCommandHandler(ITableRepository tableRepository)
         if (!request.IsActive) table.Deactivate();
 
         await tableRepository.UpdateAsync(table, ct);
+        await unitOfWork.CommitAsync(ct);
         return Result.Ok();
     }
 }

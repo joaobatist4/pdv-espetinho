@@ -1,11 +1,13 @@
 using FluentResults;
 using MediatR;
+using PdvEspetinho.Application.Common.Interfaces;
 using PdvEspetinho.Domain.Repositories;
 
 namespace PdvEspetinho.Application.Features.Users.Commands.UpdateUser;
 
-public class UpdateUserCommandHandler(IUserRepository userRepository)
-    : IRequestHandler<UpdateUserCommand, Result>
+public class UpdateUserCommandHandler(
+    IUserRepository userRepository,
+    IUnitOfWork unitOfWork) : IRequestHandler<UpdateUserCommand, Result>
 {
     public async Task<Result> Handle(UpdateUserCommand request, CancellationToken ct)
     {
@@ -18,6 +20,7 @@ public class UpdateUserCommandHandler(IUserRepository userRepository)
         else user.Activate();
 
         await userRepository.UpdateAsync(user, ct);
+        await unitOfWork.CommitAsync(ct);
         return Result.Ok();
     }
 }

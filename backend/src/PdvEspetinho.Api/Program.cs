@@ -22,7 +22,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSignalR();
 
 builder.Services.AddApplication();
-builder.Services.AddInfraData(builder.Configuration);
+builder.Services.AddInfraData(builder.Configuration, builder.Environment.IsDevelopment());
 builder.Services.AddInfraServices();
 builder.Services.AddQueryStack(builder.Configuration);
 

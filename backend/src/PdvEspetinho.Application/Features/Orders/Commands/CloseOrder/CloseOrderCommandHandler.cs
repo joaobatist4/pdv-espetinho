@@ -1,5 +1,6 @@
 using FluentResults;
 using MediatR;
+using PdvEspetinho.Application.Common.Interfaces;
 using PdvEspetinho.Domain.Entities;
 using PdvEspetinho.Domain.Enums;
 using PdvEspetinho.Domain.Repositories;
@@ -9,7 +10,8 @@ namespace PdvEspetinho.Application.Features.Orders.Commands.CloseOrder;
 public class CloseOrderCommandHandler(
     IOrderRepository orderRepository,
     ISaleRepository saleRepository,
-    ITableRepository tableRepository) : IRequestHandler<CloseOrderCommand, Result<Guid>>
+    ITableRepository tableRepository,
+    IUnitOfWork unitOfWork) : IRequestHandler<CloseOrderCommand, Result<Guid>>
 {
     public async Task<Result<Guid>> Handle(CloseOrderCommand request, CancellationToken ct)
     {
@@ -27,10 +29,6 @@ public class CloseOrderCommandHandler(
         order.Close();
         await orderRepository.UpdateAsync(order, ct);
 
-        var paymentMethod = request.Payments.Count == 1
-            ? request.Payments[0].Method
-            : PaymentMethod.Misto;
-
         var sale = Sale.Create(
             order.Id,
             request.AttendantId,
@@ -46,6 +44,7 @@ public class CloseOrderCommandHandler(
             await tableRepository.UpdateAsync(table, ct);
         }
 
+        await unitOfWork.CommitAsync(ct);
         return Result.Ok(sale.Id);
     }
 }

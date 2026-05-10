@@ -3,6 +3,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PdvEspetinho.Application.Features.Orders.Commands.AddOrderItems;
+using PdvEspetinho.Application.Features.Orders.Commands.AdjustOrderItemQuantity;
 using PdvEspetinho.Application.Features.Orders.Commands.CancelOrder;
 using PdvEspetinho.Application.Features.Orders.Commands.CloseOrder;
 using PdvEspetinho.Application.Features.Orders.Commands.CreateOrder;
@@ -75,6 +76,16 @@ public class OrdersController(IMediator mediator, GetOpenOrdersQuery getOrdersQu
         return NoContent();
     }
 
+    [HttpPatch("{id:guid}/items/{itemId:guid}/quantity")]
+    public async Task<IActionResult> AdjustItemQuantity(
+        Guid id, Guid itemId, [FromBody] AdjustItemQuantityRequest request, CancellationToken ct)
+    {
+        var result = await mediator.Send(new AdjustOrderItemQuantityCommand(id, itemId, request.Delta), ct);
+        if (result.IsFailed)
+            return BadRequest(new { errors = result.Errors.Select(e => e.Message) });
+        return NoContent();
+    }
+
     [HttpDelete("{id:guid}/items/{itemId:guid}")]
     public async Task<IActionResult> RemoveItem(Guid id, Guid itemId, CancellationToken ct)
     {
@@ -108,3 +119,4 @@ public class OrdersController(IMediator mediator, GetOpenOrdersQuery getOrdersQu
 
 public record CreateOrderRequest(Guid TableId);
 public record UpdateItemStatusRequest(PdvEspetinho.Domain.Enums.OrderItemStatus Status);
+public record AdjustItemQuantityRequest(int Delta);

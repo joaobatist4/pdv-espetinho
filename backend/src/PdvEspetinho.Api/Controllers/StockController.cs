@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PdvEspetinho.Application.Common.Interfaces;
 using PdvEspetinho.Application.Features.Stock.Commands.AdjustStock;
 using PdvEspetinho.Application.Features.Stock.Commands.AdjustSupplyQuantity;
 using PdvEspetinho.Domain.Entities;
@@ -12,7 +13,7 @@ namespace PdvEspetinho.Api.Controllers;
 [ApiController]
 [Route("api")]
 [Authorize]
-public class StockController(IMediator mediator, GetStockQuery getStockQuery, ISupplyRepository supplyRepository) : ControllerBase
+public class StockController(IMediator mediator, GetStockQuery getStockQuery, ISupplyRepository supplyRepository, IUnitOfWork unitOfWork) : ControllerBase
 {
     [HttpGet("stock")]
     public async Task<IActionResult> GetStock(CancellationToken ct)
@@ -44,6 +45,7 @@ public class StockController(IMediator mediator, GetStockQuery getStockQuery, IS
         var supply = Supply.Create(request.Name, request.CategorySlug, request.Unit,
             request.CostPerUnit, request.Quantity, request.MinimumQuantity, request.Supplier);
         await supplyRepository.AddAsync(supply, ct);
+        await unitOfWork.CommitAsync(ct);
         return Created($"api/supplies/{supply.Id}", new { id = supply.Id });
     }
 
@@ -57,6 +59,7 @@ public class StockController(IMediator mediator, GetStockQuery getStockQuery, IS
         supply.Update(request.Name, request.CategorySlug, request.Unit,
             request.CostPerUnit, request.MinimumQuantity, request.Supplier);
         await supplyRepository.UpdateAsync(supply, ct);
+        await unitOfWork.CommitAsync(ct);
         return NoContent();
     }
 

@@ -7,7 +7,8 @@ namespace PdvEspetinho.Application.Features.Orders.Commands.UpdateOrderItemStatu
 
 public class UpdateOrderItemStatusCommandHandler(
     IOrderRepository orderRepository,
-    IKitchenNotifier kitchenNotifier) : IRequestHandler<UpdateOrderItemStatusCommand, Result>
+    IKitchenNotifier kitchenNotifier,
+    IUnitOfWork unitOfWork) : IRequestHandler<UpdateOrderItemStatusCommand, Result>
 {
     public async Task<Result> Handle(UpdateOrderItemStatusCommand request, CancellationToken ct)
     {
@@ -19,6 +20,7 @@ public class UpdateOrderItemStatusCommandHandler(
             return Result.Fail("Item não encontrado no pedido.");
 
         await orderRepository.UpdateAsync(order, ct);
+        await unitOfWork.CommitAsync(ct);
 
         await kitchenNotifier.NotifyItemStatusChangedAsync(
             request.OrderId, request.ItemId, request.NewStatus.ToString(), ct);

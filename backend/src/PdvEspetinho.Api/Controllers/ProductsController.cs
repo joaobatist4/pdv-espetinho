@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PdvEspetinho.Application.Common.Interfaces;
 using PdvEspetinho.Application.Features.Products.Commands.CreateProduct;
 using PdvEspetinho.Application.Features.Products.Commands.UpdateProduct;
 using PdvEspetinho.Domain.Repositories;
@@ -11,7 +12,7 @@ namespace PdvEspetinho.Api.Controllers;
 [ApiController]
 [Route("api/products")]
 [Authorize]
-public class ProductsController(IMediator mediator, GetProductsQuery getProductsQuery, IProductRepository productRepository) : ControllerBase
+public class ProductsController(IMediator mediator, GetProductsQuery getProductsQuery, IProductRepository productRepository, IUnitOfWork unitOfWork) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] Guid? categoryId, CancellationToken ct)
@@ -47,6 +48,7 @@ public class ProductsController(IMediator mediator, GetProductsQuery getProducts
         if (product is null) return NotFound();
         product.Toggle();
         await productRepository.UpdateAsync(product, ct);
+        await unitOfWork.CommitAsync(ct);
         return NoContent();
     }
 }

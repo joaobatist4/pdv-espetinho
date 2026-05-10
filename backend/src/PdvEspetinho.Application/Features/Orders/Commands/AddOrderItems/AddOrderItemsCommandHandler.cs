@@ -1,6 +1,7 @@
 using FluentResults;
 using MediatR;
 using PdvEspetinho.Application.Common.Interfaces;
+using PdvEspetinho.Domain.Entities;
 using PdvEspetinho.Domain.Enums;
 using PdvEspetinho.Domain.Repositories;
 
@@ -8,8 +9,10 @@ namespace PdvEspetinho.Application.Features.Orders.Commands.AddOrderItems;
 
 public class AddOrderItemsCommandHandler(
     IOrderRepository orderRepository,
+    IProductRepository productRepository,
     ITableRepository tableRepository,
-    IKitchenNotifier kitchenNotifier) : IRequestHandler<AddOrderItemsCommand, Result>
+    IKitchenNotifier kitchenNotifier,
+    IUnitOfWork unitOfWork) : IRequestHandler<AddOrderItemsCommand, Result>
 {
     public async Task<Result> Handle(AddOrderItemsCommand request, CancellationToken ct)
     {
@@ -20,8 +23,19 @@ public class AddOrderItemsCommandHandler(
         if (order.Status != OrderStatus.Aberto)
             return Result.Fail("Pedido não está aberto.");
 
-        var items = request.Items.Select(i => (i.ProductId, i.ProductName, i.UnitPrice, i.Quantity, i.GoesToKitchen));
-        order.AddItems(items);
+        var productIds = request.Items.Select(i => i.ProductId).ToList();
+        var products = await productRepository.GetByIdsAsync(productIds, ct);
+
+        var missing = productIds.Except(products.Select(p => p.Id)).ToList();
+        if (missing.Count > 0)
+            return Result.Fail($"Produto(s) não encontrado(s): {string.Join(", ", missing)}");
+
+        var orderItems = request.Items
+            .Join(products, item => item.ProductId, product => product.Id,
+                (item, product) => OrderItem.Create(order.Id, product.Id, product.Name, product.Price, item.Quantity, product.GoesToKitchen))
+            .ToList();
+
+        order.AddItems(orderItems);
         await orderRepository.UpdateAsync(order, ct);
 
         var table = await tableRepository.GetByIdAsync(order.TableId, ct);
@@ -31,7 +45,10 @@ public class AddOrderItemsCommandHandler(
             await tableRepository.UpdateAsync(table, ct);
         }
 
-        await kitchenNotifier.NotifyNewItemsAsync(order.Id, order.TableId, ct);
+        await unitOfWork.CommitAsync(ct);
+
+        if (products.Any(p => p.GoesToKitchen))
+            await kitchenNotifier.NotifyNewItemsAsync(order.Id, order.TableId, ct);
 
         return Result.Ok();
     }

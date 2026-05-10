@@ -13,15 +13,12 @@ public class StockItemRepository(ApplicationContext context) : IStockItemReposit
     public async Task<IEnumerable<StockItem>> GetAllAsync(CancellationToken ct = default) =>
         await context.StockItems.ToListAsync(ct);
 
-    public async Task AddAsync(StockItem item, CancellationToken ct = default)
-    {
+    public async Task AddAsync(StockItem item, CancellationToken ct = default) =>
         await context.StockItems.AddAsync(item, ct);
-        await context.SaveChangesAsync(ct);
-    }
 
-    public async Task UpdateAsync(StockItem item, CancellationToken ct = default)
+    public Task UpdateAsync(StockItem item, CancellationToken ct = default)
     {
         context.StockItems.Update(item);
-        await context.SaveChangesAsync(ct);
+        return Task.CompletedTask;
     }
 }

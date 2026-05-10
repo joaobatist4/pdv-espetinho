@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PdvEspetinho.Application.Common.Interfaces;
 using PdvEspetinho.Application.Features.Users.Commands.CreateUser;
 using PdvEspetinho.Application.Features.Users.Commands.UpdateUser;
 using PdvEspetinho.Domain.Repositories;
@@ -11,7 +12,7 @@ namespace PdvEspetinho.Api.Controllers;
 [ApiController]
 [Route("api/users")]
 [Authorize]
-public class UsersController(IMediator mediator, GetUsersQuery getUsersQuery, IUserRepository userRepository) : ControllerBase
+public class UsersController(IMediator mediator, GetUsersQuery getUsersQuery, IUserRepository userRepository, IUnitOfWork unitOfWork) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken ct)
@@ -47,6 +48,7 @@ public class UsersController(IMediator mediator, GetUsersQuery getUsersQuery, IU
         if (user is null) return NotFound();
         user.Toggle();
         await userRepository.UpdateAsync(user, ct);
+        await unitOfWork.CommitAsync(ct);
         return NoContent();
     }
 }

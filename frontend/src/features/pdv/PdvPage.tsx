@@ -4,7 +4,7 @@ import { tablesService } from '../../services/tables.service'
 import { ordersService } from '../../services/orders.service'
 import { productsService } from '../../services/products.service'
 import { useCartStore } from '../../stores/cart.store'
-import { C, tableStatusColors } from '../../lib/tokens'
+import { C, tableStatusColors, orderItemStatusColors } from '../../lib/tokens'
 import { Badge, Btn, Card, Modal, Input, PageHeader, Empty, useToast } from '../../components/ui'
 import type { PaymentMethod } from '../../types'
 import { fmt, fmtElapsed } from '../../lib/utils'
@@ -37,6 +37,7 @@ export default function PdvPage() {
 
   const { data: tables = [] } = useQuery({ queryKey: ['tables'], queryFn: tablesService.getAll, refetchInterval: 15000 })
   const { data: products = [] } = useQuery({ queryKey: ['products'], queryFn: () => productsService.getAll(), enabled: !!selectedTableId })
+  const { data: orderDetail } = useQuery({ queryKey: ['order-detail', selectedOrderId], queryFn: () => ordersService.getById(selectedOrderId!), enabled: !!selectedOrderId, refetchInterval: 15000 })
 
   const cats = [...new Set(products.map((p) => p.categorySlug))]
   const cat = activeCat || cats[0] || ''
@@ -60,9 +61,12 @@ export default function PdvPage() {
   const sendItems = useMutation({
     mutationFn: ({ orderId, cartItems }: { orderId: string; cartItems: typeof items }) =>
       ordersService.addItems(orderId, cartItems),
-    onSuccess: (_, { orderId }) => {
-      setPrintOrderId(orderId); clearItems(); qc.invalidateQueries({ queryKey: ['tables'] })
-      showToast('✅ Pedido enviado à cozinha!')
+    onSuccess: (_, { orderId, cartItems }) => {
+      if (cartItems.some((i) => i.goesToKitchen)) setPrintOrderId(orderId)
+      clearItems()
+      qc.invalidateQueries({ queryKey: ['tables'] })
+      qc.invalidateQueries({ queryKey: ['order-detail', orderId] })
+      showToast('✅ Pedido enviado!')
     },
   })
 
@@ -74,6 +78,26 @@ export default function PdvPage() {
       showToast('✅ Conta fechada!')
     },
   })
+
+  const adjustOrderItem = useMutation({
+    mutationFn: ({ itemId, delta }: { itemId: string; delta: number }) =>
+      ordersService.adjustItemQuantity(selectedOrderId!, itemId, delta),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['order-detail', selectedOrderId] })
+      qc.invalidateQueries({ queryKey: ['tables'] })
+    },
+  })
+
+  const cancelOrder = useMutation({
+    mutationFn: (orderId: string) => ordersService.cancel(orderId),
+    onSuccess: () => {
+      clearItems(); clearTable(); setCancelModal(false)
+      qc.invalidateQueries({ queryKey: ['tables'] })
+      showToast('🗑️ Pedido cancelado')
+    },
+  })
+
+  const [cancelModal, setCancelModal] = useState(false)
 
   function openPaymentModal() { setPayments([{ method: 'Dinheiro', value: '' }]); setPaymentModal(true) }
 
@@ -160,32 +184,62 @@ export default function PdvPage() {
             🧾 Comanda — {table?.label}
           </div>
 
-          {(table?.itemCount ?? 0) > 0 && (
-            <div style={{ padding: '12px 16px 0', borderBottom: `1px solid ${C.border}` }}>
-              <div style={{ fontSize: 11, color: C.textMid, fontWeight: 700, marginBottom: 8, letterSpacing: '.5px' }}>ITENS ENVIADOS</div>
-              <div style={{ fontSize: 13, color: C.textMid, paddingBottom: 12 }}>
-                {table?.itemCount} iten{(table?.itemCount ?? 0) !== 1 ? 's' : ''} · {fmt(table?.currentTotal ?? 0)}
-              </div>
-            </div>
-          )}
+          <div style={{ flex: 1, overflow: 'auto' }}>
 
-          <div style={{ flex: 1, overflow: 'auto', padding: '12px 16px' }}>
-            {items.length === 0 && <Empty icon="🛒" msg="Adicione itens ao pedido" />}
-            {items.map((item) => (
-              <div key={item.productId} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.productName}</div>
-                  <div style={{ fontSize: 12, color: C.textMid }}>{fmt(item.unitPrice)} × {item.quantity}</div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <button onClick={() => changeQty(item.productId, -1)} style={qtyBtnStyle}>−</button>
-                  <span style={{ fontSize: 14, fontWeight: 700, minWidth: 20, textAlign: 'center' }}>{item.quantity}</span>
-                  <button onClick={() => changeQty(item.productId, 1)} style={qtyBtnStyle}>+</button>
-                </div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: C.text, minWidth: 48, textAlign: 'right' }}>{fmt(item.unitPrice * item.quantity)}</div>
-                <button onClick={() => removeItem(item.productId)} style={{ width: 24, height: 24, border: 'none', borderRadius: 6, background: C.dangerBg, color: C.danger, cursor: 'pointer', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>×</button>
+            {/* Itens já enviados ao pedido */}
+            {(orderDetail?.items.length ?? 0) > 0 && (
+              <div style={{ padding: '12px 16px', borderBottom: items.length > 0 ? `1px solid ${C.border}` : 'none' }}>
+                <div style={{ fontSize: 11, color: C.textMid, fontWeight: 700, marginBottom: 10, letterSpacing: '.5px' }}>ENVIADOS AO PEDIDO</div>
+                {orderDetail!.items.map((item) => {
+                  const sc = orderItemStatusColors[item.status]
+                  const canEdit = item.status === 'Aguardando'
+                  const isLoading = adjustOrderItem.isPending && adjustOrderItem.variables?.itemId === item.id
+                  return (
+                    <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.productName}</div>
+                        <div style={{ fontSize: 11, color: C.textMid }}>{fmt(item.unitPrice)} un</div>
+                      </div>
+                      {item.goesToKitchen && <Badge color={sc.bg} textColor={sc.text}>{sc.label}</Badge>}
+                      {canEdit ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                          <button onClick={() => adjustOrderItem.mutate({ itemId: item.id, delta: -1 })} disabled={adjustOrderItem.isPending} style={{ ...qtyBtnStyle, background: C.dangerBg, borderColor: C.dangerBg, color: C.danger }}>−</button>
+                          <span style={{ fontSize: 13, fontWeight: 700, minWidth: 20, textAlign: 'center', color: isLoading ? C.textLight : C.text }}>{isLoading ? '…' : item.quantity}</span>
+                          <button onClick={() => adjustOrderItem.mutate({ itemId: item.id, delta: 1 })} disabled={adjustOrderItem.isPending} style={{ ...qtyBtnStyle }}>+</button>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: 13, fontWeight: 700, color: C.textMid, minWidth: 24, textAlign: 'center' }}>{item.quantity}×</span>
+                      )}
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.text, minWidth: 48, textAlign: 'right' }}>{fmt(item.total)}</div>
+                    </div>
+                  )
+                })}
               </div>
-            ))}
+            )}
+
+            {/* Carrinho local (ainda não enviado) */}
+            <div style={{ padding: '12px 16px' }}>
+              {items.length > 0 && (
+                <div style={{ fontSize: 11, color: C.amber, fontWeight: 700, marginBottom: 10, letterSpacing: '.5px' }}>A ENVIAR</div>
+              )}
+              {items.length === 0 && (orderDetail?.items.length ?? 0) === 0 && <Empty icon="🛒" msg="Adicione itens ao pedido" />}
+              {items.map((item) => (
+                <div key={item.productId} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.productName}</div>
+                    <div style={{ fontSize: 12, color: C.textMid }}>{fmt(item.unitPrice)} × {item.quantity}</div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <button onClick={() => changeQty(item.productId, -1)} style={qtyBtnStyle}>−</button>
+                    <span style={{ fontSize: 14, fontWeight: 700, minWidth: 20, textAlign: 'center' }}>{item.quantity}</span>
+                    <button onClick={() => changeQty(item.productId, 1)} style={qtyBtnStyle}>+</button>
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.text, minWidth: 48, textAlign: 'right' }}>{fmt(item.unitPrice * item.quantity)}</div>
+                  <button onClick={() => removeItem(item.productId)} style={{ width: 24, height: 24, border: 'none', borderRadius: 6, background: C.dangerBg, color: C.danger, cursor: 'pointer', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>×</button>
+                </div>
+              ))}
+            </div>
+
           </div>
 
           <div style={{ borderTop: `1px solid ${C.border}`, padding: '14px 16px' }}>
@@ -195,13 +249,22 @@ export default function PdvPage() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {items.some((i) => i.goesToKitchen) && selectedOrderId && (
-                <Btn onClick={() => sendItems.mutate({ orderId: selectedOrderId, cartItems: items })} variant="secondary" style={{ width: '100%', justifyContent: 'center' }} icon="🍳">Enviar à Cozinha</Btn>
+                <Btn onClick={() => sendItems.mutate({ orderId: selectedOrderId, cartItems: items })} disabled={sendItems.isPending} variant="secondary" style={{ width: '100%', justifyContent: 'center' }} icon={sendItems.isPending ? undefined : '🍳'}>
+                  {sendItems.isPending ? 'Enviando…' : 'Enviar à Cozinha'}
+                </Btn>
               )}
               {items.length > 0 && !items.some((i) => i.goesToKitchen) && selectedOrderId && (
-                <Btn onClick={() => sendItems.mutate({ orderId: selectedOrderId, cartItems: items })} variant="secondary" style={{ width: '100%', justifyContent: 'center' }} icon="➕">Adicionar ao Pedido</Btn>
+                <Btn onClick={() => sendItems.mutate({ orderId: selectedOrderId, cartItems: items })} disabled={sendItems.isPending} variant="secondary" style={{ width: '100%', justifyContent: 'center' }} icon={sendItems.isPending ? undefined : '➕'}>
+                  {sendItems.isPending ? 'Adicionando…' : 'Adicionar ao Pedido'}
+                </Btn>
               )}
               {total > 0 && <Btn onClick={openPaymentModal} variant="primary" style={{ width: '100%', justifyContent: 'center' }} icon="💳">Fechar Conta</Btn>}
               {total === 0 && <div style={{ textAlign: 'center', fontSize: 13, color: C.textLight }}>Mesa sem consumo</div>}
+              {selectedOrderId && (
+                <button onClick={() => setCancelModal(true)} style={{ width: '100%', border: 'none', background: 'transparent', color: C.danger, padding: '6px 0', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>
+                  Cancelar pedido
+                </button>
+              )}
             </div>
           </div>
         </Card>
@@ -251,6 +314,24 @@ export default function PdvPage() {
           <div style={{ display: 'flex', gap: 10 }}>
             <Btn variant="secondary" onClick={() => setPaymentModal(false)} style={{ flex: 1, justifyContent: 'center' }}>Cancelar</Btn>
             <Btn variant="success" onClick={handleCheckout} disabled={Math.abs(remaining) > 0.005} style={{ flex: 1, justifyContent: 'center' }} icon="✅">Confirmar</Btn>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={cancelModal} onClose={() => setCancelModal(false)} title="Cancelar pedido" width={420}>
+        <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ background: C.dangerBg, borderRadius: 10, padding: '14px 16px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+            <div style={{ fontSize: 22 }}>⚠️</div>
+            <div style={{ fontSize: 13, color: C.danger, lineHeight: 1.5 }}>
+              <div style={{ fontWeight: 700, marginBottom: 4 }}>Esta ação não pode ser desfeita.</div>
+              Todos os itens deste pedido serão descartados e a mesa voltará ao status <b>Livre</b>. O cancelamento não gera venda.
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <Btn variant="secondary" onClick={() => setCancelModal(false)} style={{ flex: 1, justifyContent: 'center' }}>Voltar</Btn>
+            <Btn variant="danger" onClick={() => selectedOrderId && cancelOrder.mutate(selectedOrderId)} disabled={cancelOrder.isPending} style={{ flex: 1, justifyContent: 'center' }} icon="🗑️">
+              {cancelOrder.isPending ? 'Cancelando…' : 'Cancelar pedido'}
+            </Btn>
           </div>
         </div>
       </Modal>

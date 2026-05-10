@@ -13,15 +13,11 @@ public class TableRepository(ApplicationContext context) : ITableRepository
     public async Task<IEnumerable<Table>> GetAllActiveAsync(CancellationToken ct = default) =>
         await context.Tables.Where(t => t.IsActive).ToListAsync(ct);
 
-    public async Task AddAsync(Table table, CancellationToken ct = default)
-    {
+    public async Task AddAsync(Table table, CancellationToken ct = default) =>
         await context.Tables.AddAsync(table, ct);
-        await context.SaveChangesAsync(ct);
-    }
 
-    public async Task UpdateAsync(Table table, CancellationToken ct = default)
+    public Task UpdateAsync(Table table, CancellationToken ct = default)
     {
-        context.Tables.Update(table);
-        await context.SaveChangesAsync(ct);
+        return Task.CompletedTask;
     }
 }

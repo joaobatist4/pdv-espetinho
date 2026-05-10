@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PdvEspetinho.Application.Common.Interfaces;
 using PdvEspetinho.Application.Features.Tables.Commands.CreateTable;
 using PdvEspetinho.Application.Features.Tables.Commands.UpdateTable;
 using PdvEspetinho.Domain.Repositories;
@@ -11,7 +12,7 @@ namespace PdvEspetinho.Api.Controllers;
 [ApiController]
 [Route("api/tables")]
 [Authorize]
-public class TablesController(IMediator mediator, GetTablesWithStatusQuery getTablesQuery, ITableRepository tableRepository) : ControllerBase
+public class TablesController(IMediator mediator, GetTablesWithStatusQuery getTablesQuery, ITableRepository tableRepository, IUnitOfWork unitOfWork) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] bool includeInactive = false, CancellationToken ct = default)
@@ -47,6 +48,7 @@ public class TablesController(IMediator mediator, GetTablesWithStatusQuery getTa
         if (table is null) return NotFound();
         table.Toggle();
         await tableRepository.UpdateAsync(table, ct);
+        await unitOfWork.CommitAsync(ct);
         return NoContent();
     }
 }

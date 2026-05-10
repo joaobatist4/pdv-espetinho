@@ -13,15 +13,12 @@ public class SupplyRepository(ApplicationContext context) : ISupplyRepository
     public async Task<IEnumerable<Supply>> GetAllActiveAsync(CancellationToken ct = default) =>
         await context.Supplies.Where(s => s.IsActive).OrderBy(s => s.Name).ToListAsync(ct);
 
-    public async Task AddAsync(Supply supply, CancellationToken ct = default)
-    {
+    public async Task AddAsync(Supply supply, CancellationToken ct = default) =>
         await context.Supplies.AddAsync(supply, ct);
-        await context.SaveChangesAsync(ct);
-    }
 
-    public async Task UpdateAsync(Supply supply, CancellationToken ct = default)
+    public Task UpdateAsync(Supply supply, CancellationToken ct = default)
     {
         context.Supplies.Update(supply);
-        await context.SaveChangesAsync(ct);
+        return Task.CompletedTask;
     }
 }

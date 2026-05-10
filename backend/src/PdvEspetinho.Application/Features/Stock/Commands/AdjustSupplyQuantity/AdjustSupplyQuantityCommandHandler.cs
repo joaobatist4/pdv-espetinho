@@ -1,11 +1,13 @@
 using FluentResults;
 using MediatR;
+using PdvEspetinho.Application.Common.Interfaces;
 using PdvEspetinho.Domain.Repositories;
 
 namespace PdvEspetinho.Application.Features.Stock.Commands.AdjustSupplyQuantity;
 
-public class AdjustSupplyQuantityCommandHandler(ISupplyRepository supplyRepository)
-    : IRequestHandler<AdjustSupplyQuantityCommand, Result>
+public class AdjustSupplyQuantityCommandHandler(
+    ISupplyRepository supplyRepository,
+    IUnitOfWork unitOfWork) : IRequestHandler<AdjustSupplyQuantityCommand, Result>
 {
     public async Task<Result> Handle(AdjustSupplyQuantityCommand request, CancellationToken ct)
     {
@@ -15,6 +17,7 @@ public class AdjustSupplyQuantityCommandHandler(ISupplyRepository supplyReposito
 
         supply.AdjustQuantity(request.Delta);
         await supplyRepository.UpdateAsync(supply, ct);
+        await unitOfWork.CommitAsync(ct);
         return Result.Ok();
     }
 }
