@@ -1,0 +1,110 @@
+using System.Security.Claims;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using PdvEspetinho.Application.Features.Orders.Commands.AddOrderItems;
+using PdvEspetinho.Application.Features.Orders.Commands.CancelOrder;
+using PdvEspetinho.Application.Features.Orders.Commands.CloseOrder;
+using PdvEspetinho.Application.Features.Orders.Commands.CreateOrder;
+using PdvEspetinho.Application.Features.Orders.Commands.RemoveOrderItem;
+using PdvEspetinho.Application.Features.Orders.Commands.UpdateOrderItemStatus;
+using PdvEspetinho.QueryStack.Queries.Orders;
+
+namespace PdvEspetinho.Api.Controllers;
+
+[ApiController]
+[Route("api/orders")]
+[Authorize]
+public class OrdersController(IMediator mediator, GetOpenOrdersQuery getOrdersQuery) : ControllerBase
+{
+    private Guid CurrentUserId =>
+        Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+    [HttpGet]
+    public async Task<IActionResult> GetOpenOrders(CancellationToken ct)
+    {
+        var orders = await getOrdersQuery.ExecuteAsync(ct);
+        return Ok(orders);
+    }
+
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
+    {
+        var order = await getOrdersQuery.GetByOrderIdAsync(id, ct);
+        if (order is null) return NotFound();
+        return Ok(order);
+    }
+
+    [HttpGet("{id:guid}/kitchen-ticket")]
+    public async Task<IActionResult> GetKitchenTicket(Guid id, CancellationToken ct)
+    {
+        var ticket = await getOrdersQuery.GetKitchenTicketAsync(id, ct);
+        if (ticket is null) return NotFound();
+        return Ok(ticket);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreateOrderRequest request, CancellationToken ct)
+    {
+        var result = await mediator.Send(new CreateOrderCommand(request.TableId, CurrentUserId), ct);
+        if (result.IsFailed)
+            return BadRequest(new { errors = result.Errors.Select(e => e.Message) });
+
+        return Created($"api/orders/{result.Value}", new { id = result.Value });
+    }
+
+    [HttpPost("{id:guid}/items")]
+    public async Task<IActionResult> AddItems(Guid id, [FromBody] AddOrderItemsCommand command, CancellationToken ct)
+    {
+        var result = await mediator.Send(command with { OrderId = id }, ct);
+        if (result.IsFailed)
+            return BadRequest(new { errors = result.Errors.Select(e => e.Message) });
+
+        return NoContent();
+    }
+
+    [HttpPatch("{id:guid}/items/{itemId:guid}/status")]
+    public async Task<IActionResult> UpdateItemStatus(
+        Guid id, Guid itemId, [FromBody] UpdateItemStatusRequest request, CancellationToken ct)
+    {
+        var result = await mediator.Send(
+            new UpdateOrderItemStatusCommand(id, itemId, request.Status), ct);
+        if (result.IsFailed)
+            return BadRequest(new { errors = result.Errors.Select(e => e.Message) });
+
+        return NoContent();
+    }
+
+    [HttpDelete("{id:guid}/items/{itemId:guid}")]
+    public async Task<IActionResult> RemoveItem(Guid id, Guid itemId, CancellationToken ct)
+    {
+        var result = await mediator.Send(new RemoveOrderItemCommand(id, itemId), ct);
+        if (result.IsFailed)
+            return BadRequest(new { errors = result.Errors.Select(e => e.Message) });
+
+        return NoContent();
+    }
+
+    [HttpPost("{id:guid}/close")]
+    public async Task<IActionResult> Close(Guid id, [FromBody] CloseOrderCommand command, CancellationToken ct)
+    {
+        var result = await mediator.Send(command with { OrderId = id, AttendantId = CurrentUserId }, ct);
+        if (result.IsFailed)
+            return BadRequest(new { errors = result.Errors.Select(e => e.Message) });
+
+        return Ok(new { saleId = result.Value });
+    }
+
+    [HttpPost("{id:guid}/cancel")]
+    public async Task<IActionResult> Cancel(Guid id, CancellationToken ct)
+    {
+        var result = await mediator.Send(new CancelOrderCommand(id), ct);
+        if (result.IsFailed)
+            return BadRequest(new { errors = result.Errors.Select(e => e.Message) });
+
+        return NoContent();
+    }
+}
+
+public record CreateOrderRequest(Guid TableId);
+public record UpdateItemStatusRequest(PdvEspetinho.Domain.Enums.OrderItemStatus Status);

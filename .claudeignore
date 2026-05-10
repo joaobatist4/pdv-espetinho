@@ -1,0 +1,12 @@
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+
+backend/src/**/appsettings.Local.json
+backend/src/**/appsettings.*.local.json
+backend/src/**/secrets.json
+
+backend/src/**/bin/
+backend/src/**/obj/
+frontend/node_modules/
+frontend/dist/

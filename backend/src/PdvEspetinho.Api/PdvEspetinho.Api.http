@@ -1,0 +1,6 @@
+@PdvEspetinho.Api_HostAddress = http://localhost:5015
+
+GET {{PdvEspetinho.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDV — Espetim do Bigode</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: #F4F3F0; color: #1A1208; height: 100vh; overflow: hidden; }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #D5CFC7; border-radius: 3px; }
+
+  @keyframes slideIn { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  @keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes scaleIn { from { transform: scale(.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @keyframes pinBounce { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script src="data.js"></script>
+<script type="text/babel" src="components.jsx"></script>
+<script type="text/babel" src="module-pdv.jsx"></script>
+<script type="text/babel" src="module-pedidos.jsx"></script>
+<script type="text/babel" src="module-estoque.jsx"></script>
+<script type="text/babel" src="module-dashboard.jsx"></script>
+<script type="text/babel" src="module-cadastro.jsx"></script>
+
+<script type="text/babel">
+
+// ── App State Reducer ──
+function appReducer(state, action) {
+  switch (action.type) {
+    case "ADD_ORDER_ITEMS": {
+      const exists = state.orders.find(o => o.tableId === action.tableId && o.status === "aberto");
+      const newItems = action.items.map(i => ({ ...i, status: i.kitchen ? "aguardando" : "entregue" }));
+      let orders;
+      if (exists) {
+        orders = state.orders.map(o =>
+          o.id === exists.id ? { ...o, items: [...o.items, ...newItems] } : o
+        );
+      } else {
+        const newOrder = {
+          id: "PED-" + String(Date.now()).slice(-4),
+          tableId: action.tableId,
+          items: newItems,
+          status: "aberto",
+          openedAt: Date.now(),
+          attendant: state.currentUser?.name || "—",
+        };
+        orders = [...state.orders, newOrder];
+      }
+      // Update table status
+      const tables = state.tables.map(t =>
+        t.id === action.tableId ? { ...t, status: "ocupada" } : t
+      );
+      return { ...state, orders, tables };
+    }
+    case "UPDATE_ITEM_STATUS": {
+      const orders = state.orders.map(o =>
+        o.id === action.orderId
+          ? { ...o, items: o.items.map((it, i) => i === action.itemIdx ? { ...it, status: action.status } : it) }
+          : o
+      );
+      return { ...state, orders };
+    }
+    case "REMOVE_ORDER_ITEM": {
+      const orders = state.orders.map(o => {
+        if (o.tableId !== action.tableId || o.status !== "aberto") return o;
+        const items = o.items.filter((_, i) => i !== action.itemIdx);
+        return { ...o, items };
+      });
+      // If the order has no items left, remove it and free the table
+      const emptyOrder = orders.find(o => o.tableId === action.tableId && o.status === "aberto" && o.items.length === 0);
+      const finalOrders = emptyOrder ? orders.filter(o => o.id !== emptyOrder.id) : orders;
+      const tables = emptyOrder
+        ? state.tables.map(t => t.id === action.tableId ? { ...t, status: "livre" } : t)
+        : state.tables;
+      return { ...state, orders: finalOrders, tables };
+    }
+    case "CLOSE_TABLE": {
+      const order = state.orders.find(o => o.tableId === action.tableId && o.status === "aberto");
+      const extraItems = (action.extraItems || []).map(i => ({ ...i, status: "entregue" }));
+      const allItems = order ? [...order.items, ...extraItems] : extraItems;
+      const total = allItems.reduce((s, i) => s + i.qty * i.price, 0);
+      const closed = {
+        id: order?.id || "PED-" + String(Date.now()).slice(-4),
+        tableId: action.tableId,
+        items: allItems,
+        total,
+        payment: action.payment,
+        closedAt: new Date(),
+        attendant: state.currentUser?.name || "—",
+      };
+      const orders = state.orders.filter(o => !(o.tableId === action.tableId && o.status === "aberto"));
+      const tables = state.tables.map(t => t.id === action.tableId ? { ...t, status: "livre" } : t);
+      // Deduct stock
+      let stock = { ...state.stock };
+      allItems.forEach(item => {
+        const prod = MENU.find(p => p.id === item.productId);
+        if (prod?.stock && stock[prod.id]) {
+          stock[prod.id] = { ...stock[prod.id], qty: Math.max(0, stock[prod.id].qty - item.qty) };
+        }
+      });
+      return { ...state, orders, tables, stock, salesHistory: [...state.salesHistory, closed] };
+    }
+    case "STOCK_ENTRY": {
+      const s = state.stock[action.productId] || { qty: 0, min: 5 };
+      return { ...state, stock: { ...state.stock, [action.productId]: { ...s, qty: s.qty + action.qty } } };
+    }
+    case "STOCK_ADJUST": {
+      const s = state.stock[action.productId] || { qty: 0, min: 5 };
+      return { ...state, stock: { ...state.stock, [action.productId]: { ...s, qty: Math.max(0, s.qty + action.delta) } } };
+    }
+    case "ADD_TABLE_CUSTOM": {
+      return { ...state, tables: [...state.tables, action.table] };
+    }
+    case "UPDATE_TABLE": {
+      return { ...state, tables: state.tables.map(t => t.id === action.table.id ? { ...t, label: action.table.label, type: action.table.type } : t) };
+    }
+    case "REMOVE_TABLE": {
+      return { ...state, tables: state.tables.filter(t => t.id !== action.tableId) };
+    }
+    case "ADD_UNIT": {
+      return { ...state, units: [...(state.units || []), action.unit] };
+    }
+    case "UPDATE_UNIT": {
+      return { ...state, units: (state.units || []).map(u => u.id === action.unit.id ? action.unit : u) };
+    }
+    case "REMOVE_UNIT": {
+      return { ...state, units: (state.units || []).filter(u => u.id !== action.unitId) };
+    }
+    case "ADD_PROD_CAT": {
+      return { ...state, extraProdCats: [...(state.extraProdCats || []), action.cat] };
+    }
+    case "UPDATE_PROD_CAT": {
+      return { ...state, extraProdCats: (state.extraProdCats || []).map(c => c.id === action.cat.id ? { ...c, ...action.cat } : c) };
+    }
+    case "REMOVE_PROD_CAT": {
+      return { ...state, extraProdCats: (state.extraProdCats || []).filter(c => c.id !== action.catId) };
+    }
+    case "ADD_SUPPLY_CAT": {
+      return { ...state, extraSupplyCats: [...(state.extraSupplyCats || []), action.cat] };
+    }
+    case "UPDATE_SUPPLY_CAT": {
+      return { ...state, extraSupplyCats: (state.extraSupplyCats || []).map(c => c.id === action.cat.id ? { ...c, ...action.cat } : c) };
+    }
+    case "REMOVE_SUPPLY_CAT": {
+      return { ...state, extraSupplyCats: (state.extraSupplyCats || []).filter(c => c.id !== action.catId) };
+    }
+    case "ADD_SUPPLY": {
+      return { ...state, supplies: [...(state.supplies || []), action.supply] };
+    }
+    case "UPDATE_SUPPLY": {
+      return { ...state, supplies: (state.supplies || []).map(s => s.id === action.supply.id ? { ...s, ...action.supply } : s) };
+    }
+    case "REMOVE_SUPPLY": {
+      return { ...state, supplies: (state.supplies || []).filter(s => s.id !== action.supplyId) };
+    }
+    case "SUPPLY_ENTRY": {
+      const supplies = (state.supplies || []).map(s =>
+        s.id === action.supplyId ? {
+          ...s,
+          qty: (Number(s.qty) || 0) + Number(action.qty),
+          lastPaid: action.unitCost != null ? Number(action.unitCost) : s.lastPaid,
+          lastPurchaseAt: action.unitCost != null ? Date.now() : s.lastPurchaseAt,
+        } : s
+      );
+      const purchase = action.unitCost != null ? [{
+        id: "CMP-" + Date.now().toString(36),
+        supplyId: action.supplyId,
+        qty: Number(action.qty),
+        unitCost: Number(action.unitCost),
+        total: Number(action.qty) * Number(action.unitCost),
+        date: Date.now(),
+        note: action.note || "",
+        supplier: action.supplier || "",
+      }] : [];
+      return { ...state, supplies, purchaseHistory: [...(state.purchaseHistory || []), ...purchase] };
+    }
+    case "SUPPLY_ADJUST": {
+      return { ...state, supplies: (state.supplies || []).map(s =>
+        s.id === action.supplyId ? { ...s, qty: Math.max(0, (Number(s.qty) || 0) + Number(action.delta)) } : s
+      ) };
+    }
+    case "ADD_PRODUCT": {
+      return { ...state, extraProducts: [...(state.extraProducts || []), action.product] };
+    }
+    case "UPDATE_PRODUCT": {
+      // Update in extraProducts if it's there, otherwise add a modified copy
+      const extras = state.extraProducts || [];
+      const isExtra = extras.some(p => p.id === action.product.id);
+      if (isExtra) {
+        return { ...state, extraProducts: extras.map(p => p.id === action.product.id ? action.product : p) };
+      }
+      // Base product edited → store override in extraProducts with same id to override display
+      return { ...state, extraProducts: [...extras, action.product] };
+    }
+    case "REMOVE_PRODUCT": {
+      return { ...state, extraProducts: (state.extraProducts || []).filter(p => p.id !== action.productId) };
+    }
+    case "ADD_USER": {
+      return { ...state, users: [...state.users, action.user] };
+    }
+    case "UPDATE_USER": {
+      return { ...state, users: state.users.map(u => u.id === action.user.id ? action.user : u) };
+    }
+    case "REMOVE_USER": {
+      return { ...state, users: state.users.filter(u => u.id !== action.userId) };
+    }
+    case "LOGIN": {
+      return { ...state, currentUser: action.user };
+    }
+    case "LOGOUT": {
+      return { ...state, currentUser: null };
+    }
+    default: return state;
+  }
+}
+
+const initialAppState = {
+  currentUser: null,
+  tables: INITIAL_TABLES,
+  orders: INITIAL_ORDERS,
+  stock: INITIAL_STOCK,
+  salesHistory: genSales(),
+  users: USERS,
+  extraProducts: [],
+  extraProdCats: [],
+  extraSupplyCats: [],
+  units: [],
+  supplies: INITIAL_SUPPLIES,
+  purchaseHistory: [],
+};
+
+// ── Login Screen ──
+function LoginScreen({ users, onLogin }) {
+  const [selectedUser, setSelectedUser] = React.useState(null);
+  const [pin, setPin] = React.useState("");
+  const [error, setError] = React.useState("");
+  const [shake, setShake] = React.useState(false);
+
+  function handlePinDigit(d) {
+    if (pin.length >= 6) return;
+    const newPin = pin + d;
+    setPin(newPin);
+    setError("");
+    if (newPin.length >= 4) {
+      setTimeout(() => {
+        if (newPin === selectedUser.pin) {
+          onLogin(selectedUser);
+        } else {
+          setShake(true);
+          setError("PIN incorreto");
+          setTimeout(() => { setPin(""); setShake(false); }, 600);
+        }
+      }, 150);
+    }
+  }
+
+  function handleBackspace() { setPin(p => p.slice(0, -1)); setError(""); }
+
+  const rc = selectedUser ? roleColors[selectedUser.role] : null;
+
+  return (
+    <div style={{
+      height: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
+      background: "linear-gradient(135deg, #2D1A0E 0%, #5C3317 50%, #2D1A0E 100%)",
+      flexDirection: "column", gap: 32,
+    }}>
+      {/* Logo + Title */}
+      <div style={{ textAlign: "center", animation: "fadeIn .4s ease" }}>
+        <img src="uploads/logo.png" alt="Logo" style={{ width: 80, height: 80, objectFit: "contain", marginBottom: 10 }} />
+        <div style={{ color: "#E8920A", fontWeight: 900, fontSize: 22, letterSpacing: 1 }}>Espetim do Bigode</div>
+        <div style={{ color: "rgba(255,255,255,.45)", fontSize: 13, marginTop: 3 }}>Sistema PDV</div>
+      </div>
+
+      {!selectedUser ? (
+        /* User selection */
+        <div style={{ animation: "scaleIn .3s ease" }}>
+          <div style={{ color: "rgba(255,255,255,.6)", textAlign: "center", fontSize: 13, marginBottom: 16, letterSpacing: 1 }}>
+            QUEM ESTÁ ACESSANDO?
+          </div>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center", maxWidth: 480 }}>
+            {users.map(u => {
+              const r = roleColors[u.role] || { bg: "#333", text: "#fff" };
+              return (
+                <div key={u.id} onClick={() => setSelectedUser(u)} style={{
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+                  cursor: "pointer", padding: "16px 20px", borderRadius: 14,
+                  background: "rgba(255,255,255,.07)", border: "1.5px solid rgba(255,255,255,.12)",
+                  transition: "all .15s", minWidth: 100,
+                }} onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,.13)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,.07)"}>
+                  <div style={{
+                    width: 52, height: 52, borderRadius: "50%",
+                    background: r.bg, color: r.text,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontWeight: 900, fontSize: 20,
+                  }}>{u.avatar}</div>
+                  <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{u.name}</div>
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,.4)" }}>{ROLE_LABELS[u.role]}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        /* PIN entry */
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, animation: "scaleIn .2s ease" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+            <div style={{
+              width: 60, height: 60, borderRadius: "50%",
+              background: rc.bg, color: rc.text,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontWeight: 900, fontSize: 22,
+            }}>{selectedUser.avatar}</div>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>{selectedUser.name}</div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,.4)" }}>{ROLE_LABELS[selectedUser.role]}</div>
+          </div>
+
+          {/* PIN dots */}
+          <div style={{
+            display: "flex", gap: 12,
+            animation: shake ? "pinBounce .3s ease" : "none",
+          }}>
+            {[0,1,2,3].map(i => (
+              <div key={i} style={{
+                width: 16, height: 16, borderRadius: "50%",
+                background: i < pin.length ? "#E8920A" : "rgba(255,255,255,.2)",
+                transition: "background .1s",
+              }} />
+            ))}
+          </div>
+
+          {error && <div style={{ color: "#FF6B6B", fontSize: 13, fontWeight: 600 }}>{error}</div>}
+
+          {/* Keypad */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 72px)", gap: 10 }}>
+            {[1,2,3,4,5,6,7,8,9,"",0,"⌫"].map((d, i) => (
+              <button key={i} onClick={() => d === "⌫" ? handleBackspace() : d !== "" ? handlePinDigit(String(d)) : null}
+                disabled={d === ""}
+                style={{
+                  width: 72, height: 72, border: "none", borderRadius: 12,
+                  background: d === "" ? "transparent" : d === "⌫" ? "rgba(255,255,255,.08)" : "rgba(255,255,255,.1)",
+                  color: "#fff", fontSize: d === "⌫" ? 20 : 22, fontWeight: 700,
+                  cursor: d === "" ? "default" : "pointer", fontFamily: "inherit",
+                  transition: "background .1s",
+                }}
+                onMouseEnter={e => { if (d !== "") e.currentTarget.style.background = "rgba(232,146,10,.3)"; }}
+                onMouseLeave={e => { if (d !== "") e.currentTarget.style.background = d === "⌫" ? "rgba(255,255,255,.08)" : "rgba(255,255,255,.1)"; }}
+              >{d}</button>
+            ))}
+          </div>
+
+          <button onClick={() => { setSelectedUser(null); setPin(""); setError(""); }} style={{
+            background: "none", border: "none", color: "rgba(255,255,255,.4)",
+            cursor: "pointer", fontSize: 13, fontFamily: "inherit",
+          }}>← Trocar usuário</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Sidebar ──
+function Sidebar({ user, activeModule, onNavigate, onLogout, pendingKitchen, state }) {
+  const perms = user.permissions || [];
+  const rc = roleColors[user.role] || { bg: "#eee", text: "#333" };
+
+  const navItems = [
+    { id: "pdv",      label: "PDV / Caixa",   icon: "🏪", perm: "pdv"      },
+    { id: "pedidos",  label: "Pedidos",        icon: "🧾", perm: "pedidos", badge: pendingKitchen || null },
+    { id: "estoque",  label: "Estoque",        icon: "📦", perm: ["estoque","estoque_bebidas"] },
+    { id: "dashboard",label: "Dashboard",      icon: "📊", perm: "dashboard" },
+    { id: "cadastro", label: "Cadastro",       icon: "⚙️", perm: "cadastro" },
+  ].filter(item => {
+    const p = item.perm;
+    if (Array.isArray(p)) return p.some(x => perms.includes(x));
+    return perms.includes(p);
+  });
+
+  // Low stock alert
+  const lowStock = MENU.filter(p => p.stock && (state.stock[p.id]?.qty || 0) <= (state.stock[p.id]?.min || 5)).length;
+
+  return (
+    <div style={{
+      width: 220, height: "100vh", background: "#2D1A0E",
+      display: "flex", flexDirection: "column",
+      boxShadow: "2px 0 12px rgba(0,0,0,.15)",
+      flexShrink: 0,
+    }}>
+      {/* Logo */}
+      <div style={{ padding: "20px 16px 16px", borderBottom: "1px solid rgba(255,255,255,.08)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <img src="uploads/logo.png" alt="" style={{ width: 36, height: 36, objectFit: "contain" }} />
+          <div>
+            <div style={{ color: "#E8920A", fontWeight: 800, fontSize: 13, lineHeight: 1.2 }}>Espetim do Bigode</div>
+            <div style={{ color: "rgba(255,255,255,.35)", fontSize: 11 }}>PDV Sistema</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Nav */}
+      <nav style={{ flex: 1, padding: "10px 8px", display: "flex", flexDirection: "column", gap: 2 }}>
+        {navItems.map(item => {
+          const active = activeModule === item.id;
+          const hasLowStock = item.id === "estoque" && lowStock > 0;
+          return (
+            <button key={item.id} onClick={() => onNavigate(item.id)} style={{
+              display: "flex", alignItems: "center", gap: 10,
+              padding: "10px 12px", borderRadius: 10,
+              border: "none", background: active ? "#E8920A" : "transparent",
+              color: active ? "#fff" : "rgba(255,255,255,.65)",
+              cursor: "pointer", fontFamily: "inherit",
+              fontSize: 14, fontWeight: active ? 700 : 500,
+              transition: "all .15s", textAlign: "left", width: "100%",
+              position: "relative",
+            }}
+            onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,.07)"; }}
+            onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}
+            >
+              <span style={{ fontSize: 18 }}>{item.icon}</span>
+              <span style={{ flex: 1 }}>{item.label}</span>
+              {item.badge && (
+                <span style={{
+                  background: "#DC2626", color: "#fff", borderRadius: 99,
+                  fontSize: 11, fontWeight: 800, padding: "1px 7px", minWidth: 20, textAlign: "center",
+                }}>{item.badge}</span>
+              )}
+              {hasLowStock && !item.badge && (
+                <span style={{
+                  background: "#D97706", color: "#fff", borderRadius: 99,
+                  fontSize: 11, fontWeight: 800, padding: "1px 7px",
+                }}>!</span>
+              )}
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* User + logout */}
+      <div style={{ padding: "12px 8px", borderTop: "1px solid rgba(255,255,255,.08)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10 }}>
+          <div style={{
+            width: 34, height: 34, borderRadius: "50%",
+            background: rc.bg, color: rc.text,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontWeight: 800, fontSize: 14, flexShrink: 0,
+          }}>{user.avatar}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.name}</div>
+            <div style={{ color: "rgba(255,255,255,.4)", fontSize: 11 }}>{ROLE_LABELS[user.role]}</div>
+          </div>
+        </div>
+        <button onClick={onLogout} style={{
+          display: "flex", alignItems: "center", gap: 8,
+          padding: "8px 12px", borderRadius: 8, width: "100%",
+          border: "none", background: "transparent", color: "rgba(255,255,255,.4)",
+          cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 500,
+          transition: "all .15s",
+        }}
+        onMouseEnter={e => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.background = "rgba(220,38,38,.2)"; }}
+        onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,.4)"; e.currentTarget.style.background = "transparent"; }}
+        >
+          <span>🚪</span> Sair
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Main App ──
+function App() {
+  const [state, dispatch] = React.useReducer(appReducer, initialAppState);
+  const [activeModule, setActiveModule] = React.useState("pdv");
+  const { show: showToast, ToastContainer } = useToast();
+
+  const user = state.currentUser;
+
+  // Pending kitchen items count
+  const pendingKitchen = state.orders.reduce((s, o) =>
+    s + o.items.filter(i => i.kitchen && (i.status === "aguardando" || i.status === "preparando")).length, 0);
+
+  // Auto-select first allowed module on login
+  React.useEffect(() => {
+    if (user) {
+      const perms = user.permissions || [];
+      if (perms.includes("pdv")) setActiveModule("pdv");
+      else if (perms.includes("pedidos")) setActiveModule("pedidos");
+      else if (perms.includes("dashboard")) setActiveModule("dashboard");
+    }
+  }, [user?.id]);
+
+  if (!user) {
+    return <LoginScreen users={state.users} onLogin={(u) => dispatch({ type: "LOGIN", user: u })} />;
+  }
+
+  const moduleProps = { state, dispatch, user, showToast };
+
+  const modules = {
+    pdv:       <PDVModule       {...moduleProps} />,
+    pedidos:   <PedidosModule   {...moduleProps} />,
+    estoque:   <EstoqueModule   {...moduleProps} />,
+    dashboard: <DashboardModule {...moduleProps} />,
+    cadastro:  <CadastroModule  {...moduleProps} />,
+  };
+
+  return (
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+      <Sidebar
+        user={user}
+        activeModule={activeModule}
+        onNavigate={setActiveModule}
+        onLogout={() => dispatch({ type: "LOGOUT" })}
+        pendingKitchen={pendingKitchen}
+        state={state}
+      />
+
+      {/* Main content */}
+      <main style={{
+        flex: 1, overflow: "hidden", display: "flex", flexDirection: "column",
+        background: "#F4F3F0",
+      }}>
+        {/* Top bar */}
+        <div style={{
+          height: 52, display: "flex", alignItems: "center",
+          padding: "0 28px", background: "#fff",
+          borderBottom: "1px solid #E8E5DF",
+          justifyContent: "space-between", flexShrink: 0,
+        }}>
+          <div style={{ fontSize: 13, color: "#9E8E80" }}>
+            {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            {pendingKitchen > 0 && (
+              <button onClick={() => setActiveModule("pedidos")} style={{
+                border: "none", background: "#FEE2E2", color: "#DC2626",
+                borderRadius: 8, padding: "5px 12px", fontSize: 12, fontWeight: 700,
+                cursor: "pointer", fontFamily: "inherit", display: "flex", gap: 5, alignItems: "center",
+              }}>
+                🔥 {pendingKitchen} na cozinha
+              </button>
+            )}
+            <div style={{ fontSize: 13, color: "#6B5B4E", fontWeight: 600 }}>
+              {state.orders.filter(o => o.status === "aberto").length} mesa{state.orders.filter(o => o.status === "aberto").length !== 1 ? "s" : ""} ativa{state.orders.filter(o => o.status === "aberto").length !== 1 ? "s" : ""}
+            </div>
+          </div>
+        </div>
+
+        {/* Module content */}
+        <div style={{ flex: 1, overflow: "hidden", padding: 28, display: "flex", flexDirection: "column" }}>
+          {modules[activeModule] || <Empty icon="🚧" msg="Módulo não disponível" />}
+        </div>
+      </main>
+
+      <ToastContainer />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

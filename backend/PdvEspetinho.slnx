@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PdvEspetinho.Api/PdvEspetinho.Api.csproj" />
+    <Project Path="src/PdvEspetinho.Application/PdvEspetinho.Application.csproj" />
+    <Project Path="src/PdvEspetinho.Domain/PdvEspetinho.Domain.csproj" />
+    <Project Path="src/PdvEspetinho.Infra.Data/PdvEspetinho.Infra.Data.csproj" />
+    <Project Path="src/PdvEspetinho.Infra.Services/PdvEspetinho.Infra.Services.csproj" />
+    <Project Path="src/PdvEspetinho.QueryStack/PdvEspetinho.QueryStack.csproj" />
+  </Folder>
+</Solution>

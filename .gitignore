@@ -1,0 +1,59 @@
+# ============================================================
+# Backend — .NET
+# ============================================================
+backend/src/**/bin/
+backend/src/**/obj/
+backend/src/**/bin/Debug/
+backend/src/**/bin/Release/
+
+# Migrations geradas (opcional — remova se quiser versionar)
+# backend/src/**/Migrations/
+
+# User secrets
+backend/src/**/appsettings.Local.json
+backend/src/**/appsettings.*.local.json
+**/secrets.json
+
+# Publicação
+backend/src/**/publish/
+backend/src/**/.vs/
+
+# Rider / Visual Studio
+.idea/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.DotSettings.user
+
+# ============================================================
+# Frontend — Node / Vite / React
+# ============================================================
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+
+# Cache Vite
+frontend/.vite/
+
+# ============================================================
+# Sistema Operacional
+# ============================================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ============================================================
+# Claude Code
+# ============================================================
+.claude/settings.local.json
+
+# ============================================================
+# Editor
+# ============================================================
+.vscode/
+*.swp
+*.swo
