@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using PdvEspetinho.Application;
 using PdvEspetinho.Application.Common.Interfaces;
-using PdvEspetinho.Api.Hubs;
 using PdvEspetinho.Api.Middleware;
 using PdvEspetinho.Api.Services;
 using PdvEspetinho.Infra.Data;
@@ -19,7 +18,6 @@ builder.Services.AddControllers()
         o.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddSignalR();
 
 builder.Services.AddApplication();
 builder.Services.AddInfraData(builder.Configuration, builder.Environment.IsDevelopment());
@@ -27,7 +25,6 @@ builder.Services.AddInfraServices();
 builder.Services.AddQueryStack(builder.Configuration);
 
 builder.Services.AddScoped<IJwtService, JwtService>();
-builder.Services.AddScoped<IKitchenNotifier, KitchenNotifier>();
 
 var jwtSecret = builder.Configuration["Jwt:Secret"]
     ?? throw new InvalidOperationException("Jwt:Secret not configured.");
@@ -84,6 +81,5 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.MapHub<KitchenHub>("/hubs/kitchen");
 
 app.Run();

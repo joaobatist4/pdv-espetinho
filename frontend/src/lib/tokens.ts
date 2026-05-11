@@ -33,6 +33,12 @@ export const tableStatusColors: Record<string, { bg: string; text: string; label
   ContaPedida: { bg: C.dangerBg,  text: C.danger,  label: 'Conta pedida' },
 }
 
+export const orderStatusColors: Record<string, { bg: string; text: string; label: string }> = {
+  Aberto:    { bg: C.warnBg,    text: C.warn,    label: 'Aberto' },
+  Fechado:   { bg: C.successBg, text: C.success, label: 'Fechado' },
+  Cancelado: { bg: C.dangerBg,  text: C.danger,  label: 'Cancelado' },
+}
+
 export const orderItemStatusColors: Record<string, { bg: string; text: string; label: string }> = {
   Aguardando: { bg: '#FEF3C7', text: '#92400E', label: 'Aguardando' },
   Preparando: { bg: '#DBEAFE', text: '#1D4ED8', label: 'Preparando' },

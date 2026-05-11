@@ -8,7 +8,6 @@ using PdvEspetinho.Application.Features.Orders.Commands.CancelOrder;
 using PdvEspetinho.Application.Features.Orders.Commands.CloseOrder;
 using PdvEspetinho.Application.Features.Orders.Commands.CreateOrder;
 using PdvEspetinho.Application.Features.Orders.Commands.RemoveOrderItem;
-using PdvEspetinho.Application.Features.Orders.Commands.UpdateOrderItemStatus;
 using PdvEspetinho.QueryStack.Queries.Orders;
 
 namespace PdvEspetinho.Api.Controllers;
@@ -16,10 +15,19 @@ namespace PdvEspetinho.Api.Controllers;
 [ApiController]
 [Route("api/orders")]
 [Authorize]
-public class OrdersController(IMediator mediator, GetOpenOrdersQuery getOrdersQuery) : ControllerBase
+public class OrdersController(IMediator mediator, GetOpenOrdersQuery getOrdersQuery, GetOrdersReportQuery reportQuery) : ControllerBase
 {
     private Guid CurrentUserId =>
         Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+    [HttpGet("report")]
+    public async Task<IActionResult> GetReport([FromQuery] OrderReportRequest request, CancellationToken ct)
+    {
+        var result = await reportQuery.ExecuteAsync(
+            request.Status, request.DateFrom, request.DateTo,
+            request.Search, request.Page, request.PageSize, ct);
+        return Ok(result);
+    }
 
     [HttpGet]
     public async Task<IActionResult> GetOpenOrders(CancellationToken ct)
@@ -58,18 +66,6 @@ public class OrdersController(IMediator mediator, GetOpenOrdersQuery getOrdersQu
     public async Task<IActionResult> AddItems(Guid id, [FromBody] AddOrderItemsCommand command, CancellationToken ct)
     {
         var result = await mediator.Send(command with { OrderId = id }, ct);
-        if (result.IsFailed)
-            return BadRequest(new { errors = result.Errors.Select(e => e.Message) });
-
-        return NoContent();
-    }
-
-    [HttpPatch("{id:guid}/items/{itemId:guid}/status")]
-    public async Task<IActionResult> UpdateItemStatus(
-        Guid id, Guid itemId, [FromBody] UpdateItemStatusRequest request, CancellationToken ct)
-    {
-        var result = await mediator.Send(
-            new UpdateOrderItemStatusCommand(id, itemId, request.Status), ct);
         if (result.IsFailed)
             return BadRequest(new { errors = result.Errors.Select(e => e.Message) });
 
@@ -118,5 +114,7 @@ public class OrdersController(IMediator mediator, GetOpenOrdersQuery getOrdersQu
 }
 
 public record CreateOrderRequest(Guid TableId);
-public record UpdateItemStatusRequest(PdvEspetinho.Domain.Enums.OrderItemStatus Status);
 public record AdjustItemQuantityRequest(int Delta);
+public record OrderReportRequest(
+    string? Status, DateOnly? DateFrom, DateOnly? DateTo,
+    string? Search, int Page = 1, int PageSize = 20);

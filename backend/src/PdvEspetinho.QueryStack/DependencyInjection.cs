@@ -26,6 +26,7 @@ public static class DependencyInjection
         services.AddScoped<GetDashboardQuery>();
         services.AddScoped<GetTablesWithStatusQuery>();
         services.AddScoped<GetOpenOrdersQuery>();
+        services.AddScoped<GetOrdersReportQuery>();
         services.AddScoped<GetProductsQuery>();
         services.AddScoped<GetStockQuery>();
         services.AddScoped<GetSupplyCategoriesQuery>();

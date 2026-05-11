@@ -4,7 +4,6 @@ import AppLayout from './features/layout/AppLayout'
 import LoginPage from './features/auth/LoginPage'
 import PdvPage from './features/pdv/PdvPage'
 import OrdersPage from './features/orders/OrdersPage'
-import KitchenPage from './features/kitchen/KitchenPage'
 import StockPage from './features/stock/StockPage'
 import CadastroPage from './features/cadastro/CadastroPage'
 import DashboardPage from './features/dashboard/DashboardPage'
@@ -19,10 +18,6 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
-  },
-  {
-    path: '/cozinha',
-    element: <KitchenPage />,
   },
   {
     path: '/',

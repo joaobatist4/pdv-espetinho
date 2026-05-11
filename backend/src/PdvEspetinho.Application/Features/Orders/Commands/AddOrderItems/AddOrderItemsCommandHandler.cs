@@ -11,7 +11,6 @@ public class AddOrderItemsCommandHandler(
     IOrderRepository orderRepository,
     IProductRepository productRepository,
     ITableRepository tableRepository,
-    IKitchenNotifier kitchenNotifier,
     IUnitOfWork unitOfWork) : IRequestHandler<AddOrderItemsCommand, Result>
 {
     public async Task<Result> Handle(AddOrderItemsCommand request, CancellationToken ct)
@@ -46,9 +45,6 @@ public class AddOrderItemsCommandHandler(
         }
 
         await unitOfWork.CommitAsync(ct);
-
-        if (products.Any(p => p.GoesToKitchen))
-            await kitchenNotifier.NotifyNewItemsAsync(order.Id, order.TableId, ct);
 
         return Result.Ok();
     }

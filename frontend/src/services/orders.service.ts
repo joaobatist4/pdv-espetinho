@@ -1,5 +1,5 @@
 import api from '../lib/api'
-import type { CartItem, KitchenTicketDto, OrderDetailDto, OrderItemStatus, PaymentMethod } from '../types'
+import type { CartItem, KitchenTicketDto, OrderDetailDto, OrderReportParams, PagedResult, OrderReportItemDto, PaymentMethod } from '../types'
 
 export const ordersService = {
   getOpen: async (): Promise<OrderDetailDto[]> => {
@@ -9,6 +9,11 @@ export const ordersService = {
 
   getById: async (id: string): Promise<OrderDetailDto> => {
     const { data } = await api.get(`/orders/${id}`)
+    return data
+  },
+
+  getReport: async (params: OrderReportParams): Promise<PagedResult<OrderReportItemDto>> => {
+    const { data } = await api.get('/orders/report', { params })
     return data
   },
 
@@ -30,10 +35,6 @@ export const ordersService = {
         quantity: i.quantity,
       })),
     })
-  },
-
-  updateItemStatus: async (orderId: string, itemId: string, status: OrderItemStatus): Promise<void> => {
-    await api.patch(`/orders/${orderId}/items/${itemId}/status`, { status })
   },
 
   adjustItemQuantity: async (orderId: string, itemId: string, delta: number): Promise<void> => {

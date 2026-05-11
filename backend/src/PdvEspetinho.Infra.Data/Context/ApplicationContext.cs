@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ValueGeneration;
+using PdvEspetinho.Domain.Common;
 using PdvEspetinho.Domain.Entities;
 
 namespace PdvEspetinho.Infra.Data.Context;
@@ -20,6 +22,14 @@ public class ApplicationContext(DbContextOptions<ApplicationContext> options) : 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+         modelBuilder.Model.GetEntityTypes()
+        .Where(t => typeof(Entity).IsAssignableFrom(t.ClrType))
+        .ToList()
+        .ForEach(t => modelBuilder.Entity(t.ClrType)
+            .Property(nameof(Entity.Id))
+            .HasValueGenerator<SequentialGuidValueGenerator>()
+            .ValueGeneratedNever());
+
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationContext).Assembly);
         base.OnModelCreating(modelBuilder);
     }

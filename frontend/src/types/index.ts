@@ -114,6 +114,34 @@ export interface KitchenTicketDto {
   items: { productName: string; quantity: number }[]
 }
 
+export interface OrderReportItemDto {
+  id: string
+  tableLabel: string
+  attendantName: string
+  status: OrderStatus
+  openedAt: string
+  closedAt?: string
+  total: number
+  itemCount: number
+  itemsSummary: string
+}
+
+export interface PagedResult<T> {
+  items: T[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+export interface OrderReportParams {
+  status?: string
+  dateFrom?: string
+  dateTo?: string
+  search?: string
+  page: number
+  pageSize: number
+}
+
 export interface CartItem {
   productId: string
   productName: string
