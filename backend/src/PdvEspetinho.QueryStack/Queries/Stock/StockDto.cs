@@ -1,5 +1,12 @@
 namespace PdvEspetinho.QueryStack.Queries.Stock;
 
+public record StockMovementDto(
+    Guid Id,
+    string Type,
+    decimal QuantidadeAntes,
+    decimal QuantidadeDepois,
+    DateTime CreatedAt);
+
 public record StockItemDto(
     Guid ProductId,
     string ProductName,

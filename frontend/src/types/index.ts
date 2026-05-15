@@ -85,6 +85,16 @@ export interface SupplyDto {
   isBelowMinimum: boolean
 }
 
+export type MovementType = 'Entrada' | 'Saida' | 'Ajuste'
+
+export interface StockMovementDto {
+  id: string
+  type: MovementType
+  quantidadeAntes: number
+  quantidadeDepois: number
+  createdAt: string
+}
+
 export interface UserDto {
   id: string
   name: string

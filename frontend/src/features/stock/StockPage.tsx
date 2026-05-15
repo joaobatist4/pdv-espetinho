@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../lib/api'
 import { C } from '../../lib/tokens'
 import { Badge, Btn, Card, Modal, Input, StatCard, PageHeader, Empty, useToast } from '../../components/ui'
-import type { StockItemDto, SupplyDto } from '../../types'
+import type { StockItemDto, SupplyDto, StockMovementDto } from '../../types'
 import { fmt } from '../../lib/utils'
 
 const adjBtn: React.CSSProperties = {
@@ -14,6 +14,12 @@ const adjBtn: React.CSSProperties = {
 
 type EntryItem = (StockItemDto | SupplyDto) & { kind: 'product' | 'supply' }
 
+const movementBadge: Record<string, { bg: string; color: string; label: string }> = {
+  Entrada: { bg: C.successBg, color: C.success, label: '▲ Entrada' },
+  Saida:   { bg: C.dangerBg,  color: C.danger,  label: '▼ Saída' },
+  Ajuste:  { bg: '#FFF3CD',   color: '#856404',  label: '↔ Ajuste' },
+}
+
 export default function StockPage() {
   const qc = useQueryClient()
   const { show: showToast, ToastContainer } = useToast()
@@ -22,17 +28,33 @@ export default function StockPage() {
   const [entryModal, setEntryModal] = useState<EntryItem | null>(null)
   const [entryQty, setEntryQty] = useState('')
   const [entryNote, setEntryNote] = useState('')
+  const [historyModal, setHistoryModal] = useState<EntryItem | null>(null)
 
   const { data: stock = [] } = useQuery<StockItemDto[]>({ queryKey: ['stock'], queryFn: async () => (await api.get('/stock')).data })
   const { data: supplies = [] } = useQuery<SupplyDto[]>({ queryKey: ['supplies'], queryFn: async () => (await api.get('/supplies')).data })
 
+  const historyId = historyModal?.kind === 'product'
+    ? (historyModal as StockItemDto).productId
+    : historyModal?.kind === 'supply'
+      ? (historyModal as SupplyDto).id
+      : null
+  const historyUrl = historyModal?.kind === 'product'
+    ? `/stock/${historyId}/movements`
+    : `/supplies/${historyId}/movements`
+
+  const { data: movements = [], isFetching: loadingHistory } = useQuery<StockMovementDto[]>({
+    queryKey: ['movements', historyId],
+    queryFn: async () => (await api.get(historyUrl)).data,
+    enabled: !!historyModal,
+  })
+
   const adjustStock = useMutation({
-    mutationFn: (p: { productId: string; delta: number }) => api.post('/stock/adjust', p),
+    mutationFn: (p: { productId: string; delta: number; type: string }) => api.post('/stock/adjust', p),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['stock'] }),
   })
 
   const adjustSupply = useMutation({
-    mutationFn: (p: { supplyId: string; delta: number }) => api.patch(`/supplies/${p.supplyId}/quantity`, p),
+    mutationFn: (p: { supplyId: string; delta: number; type: string }) => api.patch(`/supplies/${p.supplyId}/quantity`, p),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['supplies'] }),
   })
 
@@ -52,11 +74,11 @@ export default function StockPage() {
     const qty = parseFloat(entryQty.replace(',', '.'))
     if (!qty || qty <= 0) { showToast('Informe uma quantidade válida', 'warn'); return }
     if (entryModal?.kind === 'product') {
-      adjustStock.mutate({ productId: (entryModal as StockItemDto).productId, delta: Math.round(qty) })
-      showToast(`✅ +${Math.round(qty)} de ${getItemName(entryModal)}`)
+      adjustStock.mutate({ productId: (entryModal as StockItemDto).productId, delta: Math.round(qty), type: 'Entrada' })
+      showToast(`+${Math.round(qty)} de ${getItemName(entryModal)}`)
     } else if (entryModal?.kind === 'supply') {
-      adjustSupply.mutate({ supplyId: (entryModal as SupplyDto).id, delta: qty })
-      showToast(`✅ +${qty} ${getItemUnit(entryModal)} de ${getItemName(entryModal)}`)
+      adjustSupply.mutate({ supplyId: (entryModal as SupplyDto).id, delta: qty, type: 'Entrada' })
+      showToast(`+${qty} ${getItemUnit(entryModal)} de ${getItemName(entryModal)}`)
     }
     setEntryModal(null); setEntryQty(''); setEntryNote('')
   }
@@ -130,8 +152,9 @@ export default function StockPage() {
                       <td style={{ padding: '12px 16px' }}>{p.isBelowMinimum ? <Badge color={C.dangerBg} textColor={C.danger}>⚠️ Baixo</Badge> : <Badge color={C.successBg} textColor={C.success}>✅ OK</Badge>}</td>
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
-                          <button onClick={() => adjustStock.mutate({ productId: p.productId, delta: -1 })} style={adjBtn}>−</button>
+                          <button onClick={() => adjustStock.mutate({ productId: p.productId, delta: -1, type: 'Saida' })} style={adjBtn}>−</button>
                           <button onClick={() => setEntryModal({ ...p, kind: 'product' })} style={{ ...adjBtn, background: C.amber, color: '#fff', border: 'none' }}>+</button>
+                          <button onClick={() => setHistoryModal({ ...p, kind: 'product' })} style={{ ...adjBtn, fontSize: 13 }} title="Histórico">📋</button>
                         </div>
                       </td>
                     </tr>
@@ -173,8 +196,9 @@ export default function StockPage() {
                       <td style={{ padding: '12px 16px' }}>{s.isBelowMinimum ? <Badge color={C.dangerBg} textColor={C.danger}>⚠️ Baixo</Badge> : <Badge color={C.successBg} textColor={C.success}>✅ OK</Badge>}</td>
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
-                          <button onClick={() => adjustSupply.mutate({ supplyId: s.id, delta: -1 })} style={adjBtn}>−</button>
+                          <button onClick={() => adjustSupply.mutate({ supplyId: s.id, delta: -1, type: 'Saida' })} style={adjBtn}>−</button>
                           <button onClick={() => setEntryModal({ ...s, kind: 'supply' })} style={{ ...adjBtn, background: C.amber, color: '#fff', border: 'none' }}>+</button>
+                          <button onClick={() => setHistoryModal({ ...s, kind: 'supply' })} style={{ ...adjBtn, fontSize: 13 }} title="Histórico">📋</button>
                         </div>
                       </td>
                     </tr>
@@ -187,6 +211,7 @@ export default function StockPage() {
         </Card>
       )}
 
+      {/* Modal de entrada */}
       <Modal open={!!entryModal} onClose={() => setEntryModal(null)} title={`Entrada de Estoque — ${entryModal ? getItemName(entryModal) : ''}`} width={420}>
         {entryModal && (
           <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -209,6 +234,51 @@ export default function StockPage() {
           </div>
         )}
       </Modal>
+
+      {/* Modal de histórico */}
+      <Modal open={!!historyModal} onClose={() => setHistoryModal(null)} title={`Histórico — ${historyModal ? getItemName(historyModal) : ''}`} width={520}>
+        {historyModal && (
+          <div style={{ padding: 24 }}>
+            {loadingHistory ? (
+              <div style={{ textAlign: 'center', color: C.textMid, padding: 32 }}>Carregando…</div>
+            ) : movements.length === 0 ? (
+              <Empty icon="📋" msg="Nenhuma movimentação registrada" />
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: C.bg }}>
+                    {['Tipo', 'De → Para', 'Data/Hora'].map((h) => (
+                      <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: C.textMid, letterSpacing: '.5px', borderBottom: `1px solid ${C.border}` }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {movements.map((m) => {
+                    const badge = movementBadge[m.type] ?? movementBadge.Ajuste
+                    const unit = historyModal.kind === 'supply' ? (historyModal as SupplyDto).unit : 'un'
+                    return (
+                      <tr key={m.id} style={{ borderBottom: `1px solid ${C.border}` }}>
+                        <td style={{ padding: '10px 12px' }}>
+                          <span style={{ background: badge.bg, color: badge.color, borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 700 }}>{badge.label}</span>
+                        </td>
+                        <td style={{ padding: '10px 12px', fontWeight: 700 }}>
+                          <span style={{ color: C.textMid }}>{m.quantidadeAntes} {unit}</span>
+                          <span style={{ color: C.textMid, margin: '0 6px' }}>→</span>
+                          <span style={{ color: C.text }}>{m.quantidadeDepois} {unit}</span>
+                        </td>
+                        <td style={{ padding: '10px 12px', color: C.textMid, whiteSpace: 'nowrap' }}>
+                          {new Date(m.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+      </Modal>
+
       <ToastContainer />
     </div>
   )

@@ -72,6 +72,20 @@ public class StockController(IMediator mediator, GetStockQuery getStockQuery, IS
 
         return NoContent();
     }
+
+    [HttpGet("stock/{productId:guid}/movements")]
+    public async Task<IActionResult> GetProductMovements(Guid productId, CancellationToken ct)
+    {
+        var movements = await getStockQuery.GetProductMovementsAsync(productId, ct);
+        return Ok(movements);
+    }
+
+    [HttpGet("supplies/{id:guid}/movements")]
+    public async Task<IActionResult> GetSupplyMovements(Guid id, CancellationToken ct)
+    {
+        var movements = await getStockQuery.GetSupplyMovementsAsync(id, ct);
+        return Ok(movements);
+    }
 }
 
 public record CreateSupplyRequest(

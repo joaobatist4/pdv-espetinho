@@ -39,4 +39,42 @@ public class GetStockQuery(QueryDb queryDb)
             (decimal)r.minimum_quantity, (string)r.supplier,
             (decimal)r.quantity <= (decimal)r.minimum_quantity)).ToList();
     }
+
+    public async Task<List<StockMovementDto>> GetProductMovementsAsync(Guid productId, CancellationToken ct = default)
+    {
+        await using var conn = queryDb.CreateConnection();
+        await conn.OpenAsync(ct);
+
+        var rows = await conn.QueryAsync(
+            @"SELECT id, type, quantidade_antes, quantidade_depois, created_at
+              FROM stock_movements
+              WHERE product_id = @productId
+              ORDER BY created_at DESC
+              LIMIT 50",
+            new { productId });
+
+        return rows.Select(r => new StockMovementDto(
+            (Guid)r.id, (string)r.type,
+            (decimal)r.quantidade_antes, (decimal)r.quantidade_depois,
+            (DateTime)r.created_at)).ToList();
+    }
+
+    public async Task<List<StockMovementDto>> GetSupplyMovementsAsync(Guid supplyId, CancellationToken ct = default)
+    {
+        await using var conn = queryDb.CreateConnection();
+        await conn.OpenAsync(ct);
+
+        var rows = await conn.QueryAsync(
+            @"SELECT id, type, quantidade_antes, quantidade_depois, created_at
+              FROM stock_movements
+              WHERE supply_id = @supplyId
+              ORDER BY created_at DESC
+              LIMIT 50",
+            new { supplyId });
+
+        return rows.Select(r => new StockMovementDto(
+            (Guid)r.id, (string)r.type,
+            (decimal)r.quantidade_antes, (decimal)r.quantidade_depois,
+            (DateTime)r.created_at)).ToList();
+    }
 }

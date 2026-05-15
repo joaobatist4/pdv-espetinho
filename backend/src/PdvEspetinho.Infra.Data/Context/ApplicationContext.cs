@@ -16,6 +16,7 @@ public class ApplicationContext(DbContextOptions<ApplicationContext> options) : 
     public DbSet<Sale> Sales => Set<Sale>();
     public DbSet<SalePayment> SalePayments => Set<SalePayment>();
     public DbSet<StockItem> StockItems => Set<StockItem>();
+    public DbSet<StockMovement> StockMovements => Set<StockMovement>();
     public DbSet<Supply> Supplies => Set<Supply>();
     public DbSet<Unit> Units => Set<Unit>();
     public DbSet<SupplyCategory> SupplyCategories => Set<SupplyCategory>();
