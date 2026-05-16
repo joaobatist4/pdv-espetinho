@@ -15,15 +15,15 @@ const adjBtn: React.CSSProperties = {
 type EntryItem = (StockItemDto | SupplyDto) & { kind: 'product' | 'supply' }
 
 const movementBadge: Record<string, { bg: string; color: string; label: string }> = {
-  Entrada: { bg: C.successBg, color: C.success, label: '▲ Entrada' },
-  Saida:   { bg: C.dangerBg,  color: C.danger,  label: '▼ Saída' },
-  Ajuste:  { bg: '#FFF3CD',   color: '#856404',  label: '↔ Ajuste' },
+  Entry:      { bg: C.successBg, color: C.success, label: '▲ Entrada' },
+  Exit:       { bg: C.dangerBg,  color: C.danger,  label: '▼ Saída' },
+  Adjustment: { bg: '#FFF3CD',   color: '#856404',  label: '↔ Ajuste' },
 }
 
 export default function StockPage() {
   const qc = useQueryClient()
   const { show: showToast, ToastContainer } = useToast()
-  const [view, setView] = useState<'produtos' | 'insumos'>('produtos')
+  const [view, setView] = useState<'products' | 'supplies'>('products')
   const [search, setSearch] = useState('')
   const [entryModal, setEntryModal] = useState<EntryItem | null>(null)
   const [entryQty, setEntryQty] = useState('')
@@ -63,7 +63,7 @@ export default function StockPage() {
 
   const lowProdCount = stock.filter((s) => s.isBelowMinimum).length
   const lowSupplyCount = supplies.filter((s) => s.isBelowMinimum).length
-  const lowCount = view === 'produtos' ? lowProdCount : lowSupplyCount
+  const lowCount = view === 'products' ? lowProdCount : lowSupplyCount
   const supplyTotalValue = supplies.reduce((s, x) => s + x.quantity * x.costPerUnit, 0)
 
   function getItemName(item: EntryItem) { return item.kind === 'product' ? (item as StockItemDto).productName : (item as SupplyDto).name }
@@ -74,10 +74,10 @@ export default function StockPage() {
     const qty = parseFloat(entryQty.replace(',', '.'))
     if (!qty || qty <= 0) { showToast('Informe uma quantidade válida', 'warn'); return }
     if (entryModal?.kind === 'product') {
-      adjustStock.mutate({ productId: (entryModal as StockItemDto).productId, delta: Math.round(qty), type: 'Entrada' })
+      adjustStock.mutate({ productId: (entryModal as StockItemDto).productId, delta: Math.round(qty), type: 'Entry' })
       showToast(`+${Math.round(qty)} de ${getItemName(entryModal)}`)
     } else if (entryModal?.kind === 'supply') {
-      adjustSupply.mutate({ supplyId: (entryModal as SupplyDto).id, delta: qty, type: 'Entrada' })
+      adjustSupply.mutate({ supplyId: (entryModal as SupplyDto).id, delta: qty, type: 'Entry' })
       showToast(`+${qty} ${getItemUnit(entryModal)} de ${getItemName(entryModal)}`)
     }
     setEntryModal(null); setEntryQty(''); setEntryNote('')
@@ -87,7 +87,7 @@ export default function StockPage() {
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <PageHeader
         title="Estoque"
-        subtitle={view === 'produtos' ? 'Controle de mercadorias e bebidas para venda' : 'Controle de matérias-primas e materiais de consumo'}
+        subtitle={view === 'products' ? 'Controle de mercadorias e bebidas para venda' : 'Controle de matérias-primas e materiais de consumo'}
         actions={lowCount > 0 ? (
           <div style={{ background: C.dangerBg, color: C.danger, borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 700 }}>
             ⚠️ {lowCount} ite{lowCount !== 1 ? 'ns' : 'm'} com estoque baixo
@@ -96,10 +96,10 @@ export default function StockPage() {
       />
 
       <div style={{ display: 'flex', gap: 4, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 4, alignSelf: 'flex-start' }}>
-        {[{ id: 'produtos', icon: '🏪', label: 'Produtos', count: stock.length, low: lowProdCount }, { id: 'insumos', icon: '🥩', label: 'Insumos', count: supplies.length, low: lowSupplyCount }].map((t) => {
+        {[{ id: 'products', icon: '🏪', label: 'Produtos', count: stock.length, low: lowProdCount }, { id: 'supplies', icon: '🥩', label: 'Insumos', count: supplies.length, low: lowSupplyCount }].map((t) => {
           const active = view === t.id
           return (
-            <button key={t.id} onClick={() => { setView(t.id as any); setSearch('') }} style={{ border: 'none', borderRadius: 9, padding: '9px 18px', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, background: active ? C.amber : 'transparent', color: active ? '#fff' : C.textMid, display: 'flex', alignItems: 'center', gap: 8, transition: 'all .15s' }}>
+            <button key={t.id} onClick={() => { setView(t.id as 'products' | 'supplies'); setSearch('') }} style={{ border: 'none', borderRadius: 9, padding: '9px 18px', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, background: active ? C.amber : 'transparent', color: active ? '#fff' : C.textMid, display: 'flex', alignItems: 'center', gap: 8, transition: 'all .15s' }}>
               <span>{t.icon}</span><span>{t.label}</span>
               <span style={{ background: active ? 'rgba(255,255,255,.25)' : C.bg, color: active ? '#fff' : C.textMid, borderRadius: 99, padding: '1px 8px', fontSize: 11, fontWeight: 800 }}>{t.count}</span>
               {t.low > 0 && <span style={{ background: active ? 'rgba(255,255,255,.25)' : C.dangerBg, color: active ? '#fff' : C.danger, borderRadius: 99, padding: '1px 7px', fontSize: 11, fontWeight: 800 }}>!{t.low}</span>}
@@ -108,10 +108,10 @@ export default function StockPage() {
         })}
       </div>
 
-      <Input placeholder={view === 'produtos' ? '🔍  Buscar produto…' : '🔍  Buscar insumo ou fornecedor…'} value={search} onChange={setSearch} />
+      <Input placeholder={view === 'products' ? '🔍  Buscar produto…' : '🔍  Buscar insumo ou fornecedor…'} value={search} onChange={setSearch} />
 
       <div style={{ display: 'flex', gap: 12 }}>
-        {view === 'produtos' ? (
+        {view === 'products' ? (
           <>
             <StatCard label="Itens com Estoque Baixo" value={lowProdCount} sub="Abaixo do mínimo" icon="⚠️" color={C.danger} />
             <StatCard label="Total de Produtos" value={stock.length} sub="com controle de estoque" icon="🏪" color={C.info} />
@@ -125,7 +125,7 @@ export default function StockPage() {
         )}
       </div>
 
-      {view === 'produtos' && (
+      {view === 'products' && (
         <Card style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           <div style={{ overflow: 'auto', flex: 1 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
@@ -152,7 +152,7 @@ export default function StockPage() {
                       <td style={{ padding: '12px 16px' }}>{p.isBelowMinimum ? <Badge color={C.dangerBg} textColor={C.danger}>⚠️ Baixo</Badge> : <Badge color={C.successBg} textColor={C.success}>✅ OK</Badge>}</td>
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
-                          <button onClick={() => adjustStock.mutate({ productId: p.productId, delta: -1, type: 'Saida' })} style={adjBtn}>−</button>
+                          <button onClick={() => adjustStock.mutate({ productId: p.productId, delta: -1, type: 'Exit' })} style={adjBtn}>−</button>
                           <button onClick={() => setEntryModal({ ...p, kind: 'product' })} style={{ ...adjBtn, background: C.amber, color: '#fff', border: 'none' }}>+</button>
                           <button onClick={() => setHistoryModal({ ...p, kind: 'product' })} style={{ ...adjBtn, fontSize: 13 }} title="Histórico">📋</button>
                         </div>
@@ -167,7 +167,7 @@ export default function StockPage() {
         </Card>
       )}
 
-      {view === 'insumos' && (
+      {view === 'supplies' && (
         <Card style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           <div style={{ overflow: 'auto', flex: 1 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
@@ -196,7 +196,7 @@ export default function StockPage() {
                       <td style={{ padding: '12px 16px' }}>{s.isBelowMinimum ? <Badge color={C.dangerBg} textColor={C.danger}>⚠️ Baixo</Badge> : <Badge color={C.successBg} textColor={C.success}>✅ OK</Badge>}</td>
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
-                          <button onClick={() => adjustSupply.mutate({ supplyId: s.id, delta: -1, type: 'Saida' })} style={adjBtn}>−</button>
+                          <button onClick={() => adjustSupply.mutate({ supplyId: s.id, delta: -1, type: 'Exit' })} style={adjBtn}>−</button>
                           <button onClick={() => setEntryModal({ ...s, kind: 'supply' })} style={{ ...adjBtn, background: C.amber, color: '#fff', border: 'none' }}>+</button>
                           <button onClick={() => setHistoryModal({ ...s, kind: 'supply' })} style={{ ...adjBtn, fontSize: 13 }} title="Histórico">📋</button>
                         </div>
@@ -254,7 +254,7 @@ export default function StockPage() {
                 </thead>
                 <tbody>
                   {movements.map((m) => {
-                    const badge = movementBadge[m.type] ?? movementBadge.Ajuste
+                    const badge = movementBadge[m.type] ?? movementBadge.Adjustment
                     const unit = historyModal.kind === 'supply' ? (historyModal as SupplyDto).unit : 'un'
                     return (
                       <tr key={m.id} style={{ borderBottom: `1px solid ${C.border}` }}>
@@ -262,9 +262,9 @@ export default function StockPage() {
                           <span style={{ background: badge.bg, color: badge.color, borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 700 }}>{badge.label}</span>
                         </td>
                         <td style={{ padding: '10px 12px', fontWeight: 700 }}>
-                          <span style={{ color: C.textMid }}>{m.quantidadeAntes} {unit}</span>
+                          <span style={{ color: C.textMid }}>{m.quantityBefore} {unit}</span>
                           <span style={{ color: C.textMid, margin: '0 6px' }}>→</span>
-                          <span style={{ color: C.text }}>{m.quantidadeDepois} {unit}</span>
+                          <span style={{ color: C.text }}>{m.quantityAfter} {unit}</span>
                         </td>
                         <td style={{ padding: '10px 12px', color: C.textMid, whiteSpace: 'nowrap' }}>
                           {new Date(m.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}

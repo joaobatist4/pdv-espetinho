@@ -19,7 +19,7 @@ public class StockMovementMapping : IEntityTypeConfiguration<StockMovement>
         builder.Property(m => m.ProductId).HasColumnName("product_id");
         builder.Property(m => m.SupplyId).HasColumnName("supply_id");
         builder.Property(m => m.Type).HasColumnName("type").HasConversion<string>().IsRequired();
-        builder.Property(m => m.QuantidadeAntes).HasColumnName("quantidade_antes").HasPrecision(10, 3);
-        builder.Property(m => m.QuantidadeDepois).HasColumnName("quantidade_depois").HasPrecision(10, 3);
+        builder.Property(m => m.QuantityBefore).HasColumnName("quantity_before").HasPrecision(10, 3);
+        builder.Property(m => m.QuantityAfter).HasColumnName("quantity_after").HasPrecision(10, 3);
     }
 }

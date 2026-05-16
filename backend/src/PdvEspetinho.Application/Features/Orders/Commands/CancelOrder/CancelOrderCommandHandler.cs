@@ -17,7 +17,7 @@ public class CancelOrderCommandHandler(
         if (order is null)
             return Result.Fail("Pedido não encontrado.");
 
-        if (order.Status != OrderStatus.Aberto)
+        if (order.Status != OrderStatus.Open)
             return Result.Fail("Pedido não está aberto.");
 
         order.Cancel();
@@ -26,7 +26,7 @@ public class CancelOrderCommandHandler(
         var table = await tableRepository.GetByIdAsync(order.TableId, ct);
         if (table is not null)
         {
-            table.SetStatus(TableStatus.Livre);
+            table.SetStatus(TableStatus.Available);
             await tableRepository.UpdateAsync(table, ct);
         }
 

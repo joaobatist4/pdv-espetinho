@@ -5,9 +5,9 @@ import type { Permission } from '../../types'
 
 const navItems: { to: string; label: string; icon: string; permission: Permission | null }[] = [
   { to: '/',          label: 'PDV / Caixa', icon: '🧾', permission: 'Pdv' },
-  { to: '/pedidos',   label: 'Pedidos',     icon: '📋', permission: 'Pedidos' },
-  { to: '/estoque',   label: 'Estoque',     icon: '📦', permission: 'Estoque' },
-  { to: '/cadastro',  label: 'Cadastro',    icon: '⚙️',  permission: 'Cadastro' },
+  { to: '/pedidos',   label: 'Pedidos',     icon: '📋', permission: 'Orders' },
+  { to: '/estoque',   label: 'Estoque',     icon: '📦', permission: 'Stock' },
+  { to: '/cadastro',  label: 'Cadastro',    icon: '⚙️',  permission: 'Registration' },
   { to: '/dashboard', label: 'Dashboard',   icon: '📊', permission: 'Dashboard' },
 ]
 

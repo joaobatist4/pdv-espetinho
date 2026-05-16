@@ -19,7 +19,7 @@ public class GetTablesWithStatusQuery(QueryDb queryDb)
                      COUNT(oi.id)::int as item_count,
                      o.opened_at
               FROM tables t
-              LEFT JOIN orders o ON o.table_id = t.id AND o.status = 'Aberto'
+              LEFT JOIN orders o ON o.table_id = t.id AND o.status = 'Open'
               LEFT JOIN order_items oi ON oi.order_id = o.id
               {where}
               GROUP BY t.id, t.label, t.type, t.status, t.is_active, o.id, o.opened_at

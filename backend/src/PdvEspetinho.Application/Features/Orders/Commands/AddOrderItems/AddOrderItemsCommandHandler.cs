@@ -19,7 +19,7 @@ public class AddOrderItemsCommandHandler(
         if (order is null)
             return Result.Fail("Pedido não encontrado.");
 
-        if (order.Status != OrderStatus.Aberto)
+        if (order.Status != OrderStatus.Open)
             return Result.Fail("Pedido não está aberto.");
 
         var productIds = request.Items.Select(i => i.ProductId).ToList();
@@ -38,9 +38,9 @@ public class AddOrderItemsCommandHandler(
         await orderRepository.UpdateAsync(order, ct);
 
         var table = await tableRepository.GetByIdAsync(order.TableId, ct);
-        if (table is not null && table.Status == TableStatus.Livre)
+        if (table is not null && table.Status == TableStatus.Available)
         {
-            table.SetStatus(TableStatus.Ocupada);
+            table.SetStatus(TableStatus.Occupied);
             await tableRepository.UpdateAsync(table, ct);
         }
 

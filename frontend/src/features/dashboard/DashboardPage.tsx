@@ -6,12 +6,12 @@ import { Badge, Card, StatCard, PageHeader, Empty } from '../../components/ui'
 import { fmt } from '../../lib/utils'
 
 const payLabels: Record<string, string> = {
-  Dinheiro: '💵 Dinheiro', Pix: '📱 PIX', Debito: '💳 Débito',
-  Credito: '💳 Crédito', Fiado: '📝 Fiado', Misto: '🔀 Misto',
+  Cash: '💵 Dinheiro', Pix: '📱 PIX', Debit: '💳 Débito',
+  Credit: '💳 Crédito', OnTab: '📝 Fiado', Mixed: '🔀 Misto',
 }
 
 export default function DashboardPage() {
-  const [period, setPeriod] = useState('hoje')
+  const [period, setPeriod] = useState('today')
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
 
   const { data } = useQuery({
@@ -34,7 +34,7 @@ export default function DashboardPage() {
         subtitle="Visão geral do negócio"
         actions={
           <div style={{ display: 'flex', gap: 6 }}>
-            {[['hoje', 'Hoje'], ['semana', '7 dias'], ['mes', '30 dias']].map(([v, l]) => (
+            {[['today', 'Hoje'], ['week', '7 dias'], ['month', '30 dias']].map(([v, l]) => (
               <button key={v} onClick={() => { setPeriod(v); setSelectedDay(null) }} style={{ border: `1px solid ${period === v ? C.amber : C.border}`, borderRadius: 8, padding: '7px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', background: period === v ? C.amber : C.surface, color: period === v ? '#fff' : C.textMid }}>{l}</button>
             ))}
           </div>

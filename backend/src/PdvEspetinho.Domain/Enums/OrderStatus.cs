@@ -2,7 +2,7 @@ namespace PdvEspetinho.Domain.Enums;
 
 public enum OrderStatus
 {
-    Aberto,
-    Fechado,
-    Cancelado
+    Open,
+    Closed,
+    Cancelled
 }

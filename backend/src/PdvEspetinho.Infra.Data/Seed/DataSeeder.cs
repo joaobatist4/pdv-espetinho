@@ -20,9 +20,9 @@ public static class DataSeeder
             passwordHash: BCrypt.Net.BCrypt.HashPassword("admin123"),
             role: Role.Admin,
             permissions: [
-                Permission.Pdv, Permission.Pedidos, Permission.Estoque,
-                Permission.EstoqueBebidas, Permission.Dashboard,
-                Permission.Cadastro, Permission.Usuarios
+                Permission.Pdv, Permission.Orders, Permission.Stock,
+                Permission.BeverageStock, Permission.Dashboard,
+                Permission.Registration, Permission.Users
             ]);
 
         var categories = new[]

@@ -21,27 +21,27 @@ export const C = {
 } as const
 
 export const roleColors: Record<string, { bg: string; text: string }> = {
-  Admin:     { bg: '#EDE9FE', text: '#5B21B6' },
-  Gerente:   { bg: '#DBEAFE', text: '#1D4ED8' },
-  Garconete: { bg: '#DCFCE7', text: '#15803D' },
-  Cozinha:   { bg: '#FEF3C7', text: '#92400E' },
+  Admin:   { bg: '#EDE9FE', text: '#5B21B6' },
+  Manager: { bg: '#DBEAFE', text: '#1D4ED8' },
+  Waiter:  { bg: '#DCFCE7', text: '#15803D' },
+  Kitchen: { bg: '#FEF3C7', text: '#92400E' },
 }
 
 export const tableStatusColors: Record<string, { bg: string; text: string; label: string }> = {
-  Livre:       { bg: C.successBg, text: C.success, label: 'Livre' },
-  Ocupada:     { bg: C.warnBg,    text: C.warn,    label: 'Ocupada' },
-  ContaPedida: { bg: C.dangerBg,  text: C.danger,  label: 'Conta pedida' },
+  Available:     { bg: C.successBg, text: C.success, label: 'Livre' },
+  Occupied:      { bg: C.warnBg,    text: C.warn,    label: 'Ocupada' },
+  BillRequested: { bg: C.dangerBg,  text: C.danger,  label: 'Conta pedida' },
 }
 
 export const orderStatusColors: Record<string, { bg: string; text: string; label: string }> = {
-  Aberto:    { bg: C.warnBg,    text: C.warn,    label: 'Aberto' },
-  Fechado:   { bg: C.successBg, text: C.success, label: 'Fechado' },
-  Cancelado: { bg: C.dangerBg,  text: C.danger,  label: 'Cancelado' },
+  Open:      { bg: C.warnBg,    text: C.warn,    label: 'Aberto' },
+  Closed:    { bg: C.successBg, text: C.success, label: 'Fechado' },
+  Cancelled: { bg: C.dangerBg,  text: C.danger,  label: 'Cancelado' },
 }
 
 export const orderItemStatusColors: Record<string, { bg: string; text: string; label: string }> = {
-  Aguardando: { bg: '#FEF3C7', text: '#92400E', label: 'Aguardando' },
-  Preparando: { bg: '#DBEAFE', text: '#1D4ED8', label: 'Preparando' },
-  Pronto:     { bg: C.successBg, text: C.success, label: 'Pronto' },
-  Entregue:   { bg: '#F3F4F6', text: '#6B7280', label: 'Entregue' },
+  Pending:   { bg: '#FEF3C7', text: '#92400E', label: 'Aguardando' },
+  Preparing: { bg: '#DBEAFE', text: '#1D4ED8', label: 'Preparando' },
+  Ready:     { bg: C.successBg, text: C.success, label: 'Pronto' },
+  Delivered: { bg: '#F3F4F6', text: '#6B7280', label: 'Entregue' },
 }

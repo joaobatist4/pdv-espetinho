@@ -3,10 +3,10 @@ namespace PdvEspetinho.Domain.Enums;
 public enum Permission
 {
     Pdv,
-    Pedidos,
-    Estoque,
-    EstoqueBebidas,
+    Orders,
+    Stock,
+    BeverageStock,
     Dashboard,
-    Cadastro,
-    Usuarios
+    Registration,
+    Users
 }

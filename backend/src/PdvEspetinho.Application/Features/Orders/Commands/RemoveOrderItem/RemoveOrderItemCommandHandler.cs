@@ -26,9 +26,9 @@ public class RemoveOrderItemCommandHandler(
         if (order.Items.Count == 0)
         {
             var table = await tableRepository.GetByIdAsync(order.TableId, ct);
-            if (table is not null && table.Status == TableStatus.Ocupada)
+            if (table is not null && table.Status == TableStatus.Occupied)
             {
-                table.SetStatus(TableStatus.Livre);
+                table.SetStatus(TableStatus.Available);
                 await tableRepository.UpdateAsync(table, ct);
             }
         }

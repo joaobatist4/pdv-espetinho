@@ -1,12 +1,12 @@
-export type Role = 'Admin' | 'Gerente' | 'Garconete' | 'Cozinha'
+export type Role = 'Admin' | 'Manager' | 'Waiter' | 'Kitchen'
 export type Permission =
-  | 'Pdv' | 'Pedidos' | 'Estoque' | 'EstoqueBebidas' | 'Dashboard' | 'Cadastro' | 'Usuarios'
+  | 'Pdv' | 'Orders' | 'Stock' | 'BeverageStock' | 'Dashboard' | 'Registration' | 'Users'
 
-export type TableType = 'Mesa' | 'Balcao'
-export type TableStatus = 'Livre' | 'Ocupada' | 'ContaPedida'
-export type OrderStatus = 'Aberto' | 'Fechado' | 'Cancelado'
-export type OrderItemStatus = 'Aguardando' | 'Preparando' | 'Pronto' | 'Entregue'
-export type PaymentMethod = 'Dinheiro' | 'Pix' | 'Debito' | 'Credito' | 'Fiado' | 'Misto'
+export type TableType = 'Table' | 'Counter'
+export type TableStatus = 'Available' | 'Occupied' | 'BillRequested'
+export type OrderStatus = 'Open' | 'Closed' | 'Cancelled'
+export type OrderItemStatus = 'Pending' | 'Preparing' | 'Ready' | 'Delivered'
+export type PaymentMethod = 'Cash' | 'Pix' | 'Debit' | 'Credit' | 'OnTab' | 'Mixed'
 
 export interface AuthUser {
   token: string
@@ -38,6 +38,11 @@ export interface OrderItemDetailDto {
   total: number
 }
 
+export interface OrderPaymentDto {
+  method: string
+  amount: number
+}
+
 export interface OrderDetailDto {
   id: string
   tableId: string
@@ -48,6 +53,7 @@ export interface OrderDetailDto {
   closedAt?: string
   total: number
   items: OrderItemDetailDto[]
+  payments: OrderPaymentDto[]
 }
 
 export interface ProductDto {
@@ -85,13 +91,13 @@ export interface SupplyDto {
   isBelowMinimum: boolean
 }
 
-export type MovementType = 'Entrada' | 'Saida' | 'Ajuste'
+export type MovementType = 'Entry' | 'Exit' | 'Adjustment'
 
 export interface StockMovementDto {
   id: string
   type: MovementType
-  quantidadeAntes: number
-  quantidadeDepois: number
+  quantityBefore: number
+  quantityAfter: number
   createdAt: string
 }
 

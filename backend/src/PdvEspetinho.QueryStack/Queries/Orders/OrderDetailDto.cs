@@ -9,7 +9,10 @@ public record OrderDetailDto(
     DateTime OpenedAt,
     DateTime? ClosedAt,
     decimal Total,
-    List<OrderItemDetailDto> Items);
+    List<OrderItemDetailDto> Items,
+    List<OrderPaymentDto> Payments);
+
+public record OrderPaymentDto(string Method, decimal Amount);
 
 public record OrderItemDetailDto(
     Guid Id,

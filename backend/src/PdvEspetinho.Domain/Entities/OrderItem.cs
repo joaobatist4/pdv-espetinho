@@ -31,7 +31,7 @@ public class OrderItem : Entity
             UnitPrice = unitPrice,
             Quantity = quantity,
             GoesToKitchen = goesToKitchen,
-            Status = OrderItemStatus.Entregue
+            Status = OrderItemStatus.Delivered
         };
     }
 

@@ -15,23 +15,23 @@ public class AdjustStockCommandHandler(
     {
         var item = await stockItemRepository.GetByProductIdAsync(request.ProductId, ct);
 
-        decimal antes;
+        decimal before;
         if (item is null)
         {
             item = StockItem.Create(request.ProductId, 0, request.NewMinimum ?? 5);
-            antes = 0;
+            before = 0;
             item.Adjust(request.Delta);
             await stockItemRepository.AddAsync(item, ct);
         }
         else
         {
-            antes = item.Quantity;
+            before = item.Quantity;
             item.Adjust(request.Delta);
             if (request.NewMinimum.HasValue) item.SetMinimum(request.NewMinimum.Value);
             await stockItemRepository.UpdateAsync(item, ct);
         }
 
-        var movement = StockMovement.ForProduct(request.ProductId, request.Type, antes, item.Quantity);
+        var movement = StockMovement.ForProduct(request.ProductId, request.Type, before, item.Quantity);
         await stockMovementRepository.AddAsync(movement, ct);
 
         await unitOfWork.CommitAsync(ct);

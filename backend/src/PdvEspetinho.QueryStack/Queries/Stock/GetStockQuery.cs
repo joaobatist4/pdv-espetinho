@@ -46,7 +46,7 @@ public class GetStockQuery(QueryDb queryDb)
         await conn.OpenAsync(ct);
 
         var rows = await conn.QueryAsync(
-            @"SELECT id, type, quantidade_antes, quantidade_depois, created_at
+            @"SELECT id, type, quantity_before, quantity_after, created_at
               FROM stock_movements
               WHERE product_id = @productId
               ORDER BY created_at DESC
@@ -55,7 +55,7 @@ public class GetStockQuery(QueryDb queryDb)
 
         return rows.Select(r => new StockMovementDto(
             (Guid)r.id, (string)r.type,
-            (decimal)r.quantidade_antes, (decimal)r.quantidade_depois,
+            (decimal)r.quantity_before, (decimal)r.quantity_after,
             (DateTime)r.created_at)).ToList();
     }
 
@@ -65,7 +65,7 @@ public class GetStockQuery(QueryDb queryDb)
         await conn.OpenAsync(ct);
 
         var rows = await conn.QueryAsync(
-            @"SELECT id, type, quantidade_antes, quantidade_depois, created_at
+            @"SELECT id, type, quantity_before, quantity_after, created_at
               FROM stock_movements
               WHERE supply_id = @supplyId
               ORDER BY created_at DESC
@@ -74,7 +74,7 @@ public class GetStockQuery(QueryDb queryDb)
 
         return rows.Select(r => new StockMovementDto(
             (Guid)r.id, (string)r.type,
-            (decimal)r.quantidade_antes, (decimal)r.quantidade_depois,
+            (decimal)r.quantity_before, (decimal)r.quantity_after,
             (DateTime)r.created_at)).ToList();
     }
 }

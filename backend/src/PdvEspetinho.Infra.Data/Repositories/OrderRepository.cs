@@ -14,12 +14,12 @@ public class OrderRepository(ApplicationContext context) : IOrderRepository
     public Task<Order?> GetOpenByTableAsync(Guid tableId, CancellationToken ct = default) =>
         context.Orders
             .Include(o => o.Items)
-            .FirstOrDefaultAsync(o => o.TableId == tableId && o.Status == OrderStatus.Aberto, ct);
+            .FirstOrDefaultAsync(o => o.TableId == tableId && o.Status == OrderStatus.Open, ct);
 
     public async Task<IEnumerable<Order>> GetOpenOrdersAsync(CancellationToken ct = default) =>
         await context.Orders
             .Include(o => o.Items)
-            .Where(o => o.Status == OrderStatus.Aberto)
+            .Where(o => o.Status == OrderStatus.Open)
             .OrderBy(o => o.OpenedAt)
             .ToListAsync(ct);
 

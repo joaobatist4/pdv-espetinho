@@ -26,7 +26,7 @@ public class Order : Entity
         {
             TableId = tableId,
             AttendantId = attendantId,
-            Status = OrderStatus.Aberto,
+            Status = OrderStatus.Open,
             OpenedAt = DateTime.UtcNow
         };
         order._domainEvents.Add(new OrderCreatedEvent(order.Id, tableId, attendantId));
@@ -82,7 +82,7 @@ public class Order : Entity
 
     public void Close()
     {
-        Status = OrderStatus.Fechado;
+        Status = OrderStatus.Closed;
         ClosedAt = DateTime.UtcNow;
         var total = _items.Sum(i => i.Total);
         _domainEvents.Add(new OrderClosedEvent(Id, TableId, total));
@@ -91,7 +91,7 @@ public class Order : Entity
 
     public void Cancel()
     {
-        Status = OrderStatus.Cancelado;
+        Status = OrderStatus.Cancelled;
         ClosedAt = DateTime.UtcNow;
         SetUpdatedAt();
     }

@@ -19,7 +19,7 @@ public class CloseOrderCommandHandler(
         if (order is null)
             return Result.Fail<Guid>("Pedido não encontrado.");
 
-        if (order.Status != OrderStatus.Aberto)
+        if (order.Status != OrderStatus.Open)
             return Result.Fail<Guid>("Pedido não está aberto.");
 
         var paidTotal = request.Payments.Sum(p => p.Amount);
@@ -40,7 +40,7 @@ public class CloseOrderCommandHandler(
         var table = await tableRepository.GetByIdAsync(order.TableId, ct);
         if (table is not null)
         {
-            table.SetStatus(TableStatus.Livre);
+            table.SetStatus(TableStatus.Available);
             await tableRepository.UpdateAsync(table, ct);
         }
 

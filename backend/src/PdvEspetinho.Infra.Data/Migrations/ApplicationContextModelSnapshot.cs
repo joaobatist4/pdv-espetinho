@@ -338,15 +338,15 @@ namespace PdvEspetinho.Infra.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("product_id");
 
-                    b.Property<decimal>("QuantidadeAntes")
+                    b.Property<decimal>("QuantityBefore")
                         .HasPrecision(10, 3)
                         .HasColumnType("numeric(10,3)")
-                        .HasColumnName("quantidade_antes");
+                        .HasColumnName("quantity_before");
 
-                    b.Property<decimal>("QuantidadeDepois")
+                    b.Property<decimal>("QuantityAfter")
                         .HasPrecision(10, 3)
                         .HasColumnType("numeric(10,3)")
-                        .HasColumnName("quantidade_depois");
+                        .HasColumnName("quantity_after");
 
                     b.Property<Guid?>("SupplyId")
                         .HasColumnType("uuid")

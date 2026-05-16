@@ -18,7 +18,7 @@ public class Table : Entity
         {
             Label = label,
             Type = type,
-            Status = TableStatus.Livre,
+            Status = TableStatus.Available,
             IsActive = true
         };
     }

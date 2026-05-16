@@ -17,11 +17,11 @@ public class AdjustSupplyQuantityCommandHandler(
         if (supply is null)
             return Result.Fail("Insumo não encontrado.");
 
-        var antes = supply.Quantity;
+        var before = supply.Quantity;
         supply.AdjustQuantity(request.Delta);
         await supplyRepository.UpdateAsync(supply, ct);
 
-        var movement = StockMovement.ForSupply(request.SupplyId, request.Type, antes, supply.Quantity);
+        var movement = StockMovement.ForSupply(request.SupplyId, request.Type, before, supply.Quantity);
         await stockMovementRepository.AddAsync(movement, ct);
 
         await unitOfWork.CommitAsync(ct);

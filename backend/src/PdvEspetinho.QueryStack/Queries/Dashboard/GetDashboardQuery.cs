@@ -5,7 +5,7 @@ namespace PdvEspetinho.QueryStack.Queries.Dashboard;
 
 public class GetDashboardQuery(QueryDb queryDb)
 {
-    public async Task<DashboardDto> ExecuteAsync(string period = "hoje", CancellationToken ct = default)
+    public async Task<DashboardDto> ExecuteAsync(string period = "today", CancellationToken ct = default)
     {
         var (startDate, endDate) = GetDateRange(period);
         await using var conn = queryDb.CreateConnection();
@@ -21,7 +21,7 @@ public class GetDashboardQuery(QueryDb queryDb)
 
         var openRevenue = await conn.QuerySingleAsync<decimal>(
             @"SELECT COALESCE(SUM(oi.unit_price * oi.quantity), 0)
-              FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE o.status = 'Aberto'");
+              FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE o.status = 'Open'");
 
         var openTableCount = await conn.QuerySingleAsync<int>(
             "SELECT COUNT(*) FROM orders WHERE status = 'Aberto'");
@@ -80,8 +80,8 @@ public class GetDashboardQuery(QueryDb queryDb)
 
     private static (DateTime start, DateTime end) GetDateRange(string period) => period switch
     {
-        "semana" => (DateTime.UtcNow.Date.AddDays(-7), DateTime.UtcNow.Date.AddDays(1)),
-        "mes" => (DateTime.UtcNow.Date.AddDays(-30), DateTime.UtcNow.Date.AddDays(1)),
+        "week" => (DateTime.UtcNow.Date.AddDays(-7), DateTime.UtcNow.Date.AddDays(1)),
+        "month" => (DateTime.UtcNow.Date.AddDays(-30), DateTime.UtcNow.Date.AddDays(1)),
         _ => (DateTime.UtcNow.Date, DateTime.UtcNow.Date.AddDays(1))
     };
 }

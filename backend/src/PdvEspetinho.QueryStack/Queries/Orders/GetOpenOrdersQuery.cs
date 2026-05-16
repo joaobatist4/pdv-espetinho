@@ -17,7 +17,7 @@ public class GetOpenOrdersQuery(QueryDb queryDb)
               FROM orders o
               JOIN tables t ON t.id = o.table_id
               JOIN users u ON u.id = o.attendant_id
-              WHERE o.status = 'Aberto'
+              WHERE o.status = 'Open'
               ORDER BY o.opened_at");
 
         var result = new List<OrderDetailDto>();
@@ -27,7 +27,7 @@ public class GetOpenOrdersQuery(QueryDb queryDb)
             result.Add(new OrderDetailDto(
                 (Guid)row.id, (Guid)row.table_id, (string)row.table_label,
                 (string)row.attendant_name, (string)row.status,
-                (DateTime)row.opened_at, null, items.Sum(i => i.Total), items));
+                (DateTime)row.opened_at, null, items.Sum(i => i.Total), items, []));
         }
         return result;
     }
@@ -48,12 +48,13 @@ public class GetOpenOrdersQuery(QueryDb queryDb)
 
         if (row is null) return null;
         var items = await GetItemsAsync(conn, orderId);
+        var payments = await GetPaymentsAsync(conn, orderId);
         return new OrderDetailDto(
             (Guid)row.id, (Guid)row.table_id, (string)row.table_label,
             (string)row.attendant_name, (string)row.status,
             (DateTime)row.opened_at,
             row.closed_at is null ? null : (DateTime?)row.closed_at,
-            items.Sum(i => i.Total), items);
+            items.Sum(i => i.Total), items, payments);
     }
 
     public async Task<KitchenTicketDto?> GetKitchenTicketAsync(Guid orderId, CancellationToken ct = default)
@@ -73,6 +74,19 @@ public class GetOpenOrdersQuery(QueryDb queryDb)
 
         var items = itemRows.Select(i => new KitchenItemDto((string)i.product_name, (int)i.quantity)).ToList();
         return new KitchenTicketDto((Guid)row.id, (string)row.table_label, (DateTime)row.opened_at, items);
+    }
+
+    private static async Task<List<OrderPaymentDto>> GetPaymentsAsync(NpgsqlConnection conn, Guid orderId)
+    {
+        var rows = await conn.QueryAsync(
+            @"SELECT sp.method, sp.amount
+              FROM sale_payments sp
+              JOIN sales s ON s.id = sp.sale_id
+              WHERE s.order_id = @orderId
+              ORDER BY sp.amount DESC",
+            new { orderId });
+
+        return rows.Select(r => new OrderPaymentDto((string)r.method, (decimal)r.amount)).ToList();
     }
 
     private static async Task<List<OrderItemDetailDto>> GetItemsAsync(NpgsqlConnection conn, Guid orderId)

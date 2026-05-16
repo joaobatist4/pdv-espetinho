@@ -5,7 +5,7 @@ interface CartState {
   selectedTableId: string | null
   selectedOrderId: string | null
   items: CartItem[]
-  setTable: (tableId: string, orderId?: string) => void
+  setTable: (tableId: string, orderId: string | null) => void
   clearTable: () => void
   addItem: (item: CartItem) => void
   removeItem: (productId: string) => void

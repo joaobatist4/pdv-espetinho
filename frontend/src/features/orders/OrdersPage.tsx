@@ -8,11 +8,16 @@ import type { OrderDetailDto, OrderReportParams } from '../../types'
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100]
 
+const payLabels: Record<string, string> = {
+  Cash: '💵 Dinheiro', Pix: '📱 PIX', Debit: '💳 Débito',
+  Credit: '💳 Crédito', OnTab: '📝 Fiado', Mixed: '🔀 Misto',
+}
+
 const statusOptions = [
   { value: '', label: 'Todos os status' },
-  { value: 'Aberto', label: 'Aberto' },
-  { value: 'Fechado', label: 'Fechado' },
-  { value: 'Cancelado', label: 'Cancelado' },
+  { value: 'Open', label: 'Aberto' },
+  { value: 'Closed', label: 'Fechado' },
+  { value: 'Cancelled', label: 'Cancelado' },
 ]
 
 const defaultParams: OrderReportParams = { page: 1, pageSize: 20 }
@@ -157,7 +162,7 @@ export default function OrdersPage() {
               </thead>
               <tbody>
                 {data.items.map((order, i) => {
-                  const sc = orderStatusColors[order.status] ?? orderStatusColors['Aberto']
+                  const sc = orderStatusColors[order.status] ?? orderStatusColors['Open']
                   return (
                     <tr
                       key={order.id}
@@ -241,7 +246,21 @@ export default function OrdersPage() {
               ))}
             </div>
 
-            {selected.status === 'Aberto' && (
+            {selected.payments.length > 0 && (
+              <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: C.textMid, marginBottom: 8, letterSpacing: '.5px' }}>💳 PAGAMENTO</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {selected.payments.map((p) => (
+                    <div key={p.method} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.bg, borderRadius: 8, padding: '8px 14px' }}>
+                      <span style={{ fontSize: 13, color: C.textMid }}>{payLabels[p.method] ?? p.method}</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{fmt(p.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {selected.status === 'Open' && (
               <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 14, display: 'flex', justifyContent: 'flex-end' }}>
                 <button
                   onClick={() => setConfirmCancel(true)}

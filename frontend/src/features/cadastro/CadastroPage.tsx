@@ -8,29 +8,29 @@ import type { UserDto } from '../../types'
 import { fmt } from '../../lib/utils'
 
 const tabs = [
-  { id: 'produtos',     label: '📦 Produtos' },
-  { id: 'insumos',     label: '🧂 Insumos' },
-  { id: 'mesas',       label: '🪑 Mesas' },
-  { id: 'usuarios',    label: '👥 Usuários' },
-  { id: 'categorias',  label: '🏷️ Categorias' },
-  { id: 'unidades',    label: '📐 Unidades' },
+  { id: 'products',    label: '📦 Produtos' },
+  { id: 'supplies',   label: '🧂 Insumos' },
+  { id: 'tables',     label: '🪑 Mesas' },
+  { id: 'users',      label: '👥 Usuários' },
+  { id: 'categories', label: '🏷️ Categorias' },
+  { id: 'units',      label: '📐 Unidades' },
 ]
 
 const ALL_PERMISSIONS = [
-  { id: 'Pdv',            label: 'PDV / Caixa',    desc: 'Abrir pedidos e fechar contas' },
-  { id: 'Pedidos',        label: 'Pedidos',         desc: 'Ver e atualizar status de pedidos' },
-  { id: 'Estoque',        label: 'Estoque Geral',   desc: 'Ajustar estoque de produtos e insumos' },
-  { id: 'EstoqueBebidas', label: 'Estoque Bebidas', desc: 'Ajustar somente bebidas' },
-  { id: 'Dashboard',      label: 'Dashboard',       desc: 'Ver relatórios e gráficos' },
-  { id: 'Cadastro',       label: 'Cadastro',        desc: 'CRUD de produtos, mesas e insumos' },
-  { id: 'Usuarios',       label: 'Usuários',        desc: 'Criar e editar usuários' },
+  { id: 'Pdv',           label: 'PDV / Caixa',    desc: 'Abrir pedidos e fechar contas' },
+  { id: 'Orders',        label: 'Pedidos',         desc: 'Ver e atualizar status de pedidos' },
+  { id: 'Stock',         label: 'Estoque Geral',   desc: 'Ajustar estoque de produtos e insumos' },
+  { id: 'BeverageStock', label: 'Estoque Bebidas', desc: 'Ajustar somente bebidas' },
+  { id: 'Dashboard',     label: 'Dashboard',       desc: 'Ver relatórios e gráficos' },
+  { id: 'Registration',  label: 'Cadastro',        desc: 'CRUD de produtos, mesas e insumos' },
+  { id: 'Users',         label: 'Usuários',        desc: 'Criar e editar usuários' },
 ]
 
 const ROLE_PERMISSIONS: Record<string, string[]> = {
-  Admin:      ['Pdv', 'Pedidos', 'Estoque', 'EstoqueBebidas', 'Dashboard', 'Cadastro', 'Usuarios'],
-  Gerente:    ['Pdv', 'Pedidos', 'Estoque', 'EstoqueBebidas', 'Dashboard', 'Cadastro'],
-  Garconete:  ['Pdv', 'Pedidos', 'EstoqueBebidas'],
-  Cozinha:    [],
+  Admin:   ['Pdv', 'Orders', 'Stock', 'BeverageStock', 'Dashboard', 'Registration', 'Users'],
+  Manager: ['Pdv', 'Orders', 'Stock', 'BeverageStock', 'Dashboard', 'Registration'],
+  Waiter:  ['Pdv', 'Orders', 'BeverageStock'],
+  Kitchen: [],
 }
 
 const UNIT_OPTIONS = [
@@ -98,15 +98,15 @@ const SUPPLY_CATS = [
 ]
 
 const TABLE_TYPES = [
-  { value: 'Mesa', label: '🪑 Mesa' },
-  { value: 'Balcao', label: '🍽️ Balcão' },
+  { value: 'Table',   label: '🪑 Mesa' },
+  { value: 'Counter', label: '🍽️ Balcão' },
 ]
 
 const ROLES = [
-  { value: 'Admin', label: '👑 Admin' },
-  { value: 'Gerente', label: '🏆 Gerente' },
-  { value: 'Garconete', label: '🍽️ Garçonete' },
-  { value: 'Cozinha', label: '👨‍🍳 Cozinha' },
+  { value: 'Admin',   label: '👑 Admin' },
+  { value: 'Manager', label: '🏆 Gerente' },
+  { value: 'Waiter',  label: '🍽️ Garçonete' },
+  { value: 'Kitchen', label: '👨‍🍳 Cozinha' },
 ]
 
 export default function CadastroPage() {
@@ -126,12 +126,12 @@ export default function CadastroPage() {
 
       <input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍  Buscar…" style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: '9px 14px', fontSize: 14, color: C.text, background: C.surface, outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' }} />
 
-      {tab === 'produtos'    && <ProductsTab    search={search} showToast={showToast} />}
-      {tab === 'insumos'     && <InsumosTab     search={search} showToast={showToast} />}
-      {tab === 'mesas'       && <MesasTab       search={search} showToast={showToast} />}
-      {tab === 'usuarios'    && <UsuariosTab    search={search} showToast={showToast} />}
-      {tab === 'categorias'  && <CategoriasTab  search={search} showToast={showToast} />}
-      {tab === 'unidades'    && <UnidadesTab    search={search} showToast={showToast} />}
+      {tab === 'products'   && <ProductsTab    search={search} showToast={showToast} />}
+      {tab === 'supplies'   && <SuppliesTab    search={search} showToast={showToast} />}
+      {tab === 'tables'     && <TablesTab      search={search} showToast={showToast} />}
+      {tab === 'users'      && <UsersTab       search={search} showToast={showToast} />}
+      {tab === 'categories' && <CategoriesTab  search={search} showToast={showToast} />}
+      {tab === 'units'      && <UnitsTab       search={search} showToast={showToast} />}
 
       <ToastContainer />
     </div>
@@ -256,7 +256,7 @@ function ProductsTab({ search, showToast }: { search: string; showToast: (m: str
 
 interface SupplyDto { id: string; name: string; categorySlug: string; unit: string; costPerUnit: number; quantity: number; minimumQuantity: number; supplier?: string }
 
-function InsumosTab({ search, showToast }: { search: string; showToast: (m: string, t?: string) => void }) {
+function SuppliesTab({ search, showToast }: { search: string; showToast: (m: string, t?: string) => void }) {
   const qc = useQueryClient()
   const { data: supplies = [] } = useQuery<SupplyDto[]>({ queryKey: ['supplies'], queryFn: async () => (await api.get('/supplies')).data })
   const { data: supplyCategories = [] } = useQuery<SupplyCategoryDto[]>({ queryKey: ['supply-categories'], queryFn: async () => (await api.get('/supply-categories')).data })
@@ -364,7 +364,7 @@ function InsumosTab({ search, showToast }: { search: string; showToast: (m: stri
 
 interface TableDto { id: string; number: number; label: string; type: string; status: string; isActive: boolean }
 
-function MesasTab({ search, showToast }: { search: string; showToast: (m: string, t?: string) => void }) {
+function TablesTab({ search, showToast }: { search: string; showToast: (m: string, t?: string) => void }) {
   const qc = useQueryClient()
   const [showInactive, setShowInactive] = useState(false)
   const { data: tables = [] } = useQuery<TableDto[]>({
@@ -373,7 +373,7 @@ function MesasTab({ search, showToast }: { search: string; showToast: (m: string
   })
   const filtered = tables.filter(t => !search || t.label.toLowerCase().includes(search.toLowerCase()))
 
-  const emptyTable = { number: '', label: '', type: 'Mesa', isActive: true }
+  const emptyTable = { number: '', label: '', type: 'Table', isActive: true }
   const [modal, setModal] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
   const [form, setForm] = useState<{ number: string; label: string; type: string; isActive: boolean }>(emptyTable)
@@ -403,9 +403,9 @@ function MesasTab({ search, showToast }: { search: string; showToast: (m: string
   })
 
   const statusColors: Record<string, { bg: string; text: string }> = {
-    Livre:        { bg: '#dcfce7', text: '#16a34a' },
-    Ocupada:      { bg: '#fef9c3', text: '#a16207' },
-    ContaPedida:  { bg: '#fee2e2', text: '#dc2626' },
+    Available:     { bg: '#dcfce7', text: '#16a34a' },
+    Occupied:      { bg: '#fef9c3', text: '#a16207' },
+    BillRequested: { bg: '#fee2e2', text: '#dc2626' },
   }
 
   return (
@@ -425,7 +425,7 @@ function MesasTab({ search, showToast }: { search: string; showToast: (m: string
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                 <div>
                   <div style={{ fontWeight: 800, fontSize: 18, color: C.text }}>{t.label}</div>
-                  <div style={{ fontSize: 12, color: C.textMid }}>{t.type === 'Balcao' ? '🍽️ Balcão' : '🪑 Mesa'}</div>
+                  <div style={{ fontSize: 12, color: C.textMid }}>{t.type === 'Counter' ? '🍽️ Balcão' : '🪑 Mesa'}</div>
                 </div>
                 <Badge color={sc.bg} textColor={sc.text}>{t.status}</Badge>
               </div>
@@ -463,17 +463,17 @@ function MesasTab({ search, showToast }: { search: string; showToast: (m: string
 interface CategoryDto { id: string; name: string; slug: string; icon: string; sortOrder: number }
 interface SupplyCategoryDto { id: string; name: string; slug: string; icon: string; sortOrder: number }
 
-function CategoriasTab({ search, showToast }: { search: string; showToast: (m: string, t?: string) => void }) {
-  const [sub, setSub] = useState<'produtos' | 'insumos'>('produtos')
+function CategoriesTab({ search, showToast }: { search: string; showToast: (m: string, t?: string) => void }) {
+  const [sub, setSub] = useState<'products' | 'supplies'>('products')
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', gap: 8 }}>
-        {([['produtos', '📦 Categorias de Produtos'], ['insumos', '🧂 Categorias de Insumos']] as const).map(([v, l]) => (
+        {([['products', '📦 Categorias de Produtos'], ['supplies', '🧂 Categorias de Insumos']] as const).map(([v, l]) => (
           <button key={v} onClick={() => setSub(v)} style={{ border: `1px solid ${sub === v ? C.amber : C.border}`, background: sub === v ? C.amber : C.surface, borderRadius: 8, padding: '7px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', color: sub === v ? '#fff' : C.textMid }}>{l}</button>
         ))}
       </div>
-      {sub === 'produtos' && <ProductCategoriesTab search={search} showToast={showToast} />}
-      {sub === 'insumos'  && <SupplyCategoriesTab  search={search} showToast={showToast} />}
+      {sub === 'products' && <ProductCategoriesTab search={search} showToast={showToast} />}
+      {sub === 'supplies' && <SupplyCategoriesTab  search={search} showToast={showToast} />}
     </div>
   )
 }
@@ -662,7 +662,7 @@ function SupplyCategoriesTab({ search, showToast }: { search: string; showToast:
 
 interface UnitDto { id: string; name: string; label: string; sortOrder: number }
 
-function UnidadesTab({ search, showToast }: { search: string; showToast: (m: string, t?: string) => void }) {
+function UnitsTab({ search, showToast }: { search: string; showToast: (m: string, t?: string) => void }) {
   const qc = useQueryClient()
   const { data: units = [] } = useQuery<UnitDto[]>({ queryKey: ['units'], queryFn: async () => (await api.get('/units')).data })
   const filtered = units.filter(u => !search || u.name.toLowerCase().includes(search.toLowerCase()) || u.label.toLowerCase().includes(search.toLowerCase()))
@@ -746,12 +746,12 @@ function UnidadesTab({ search, showToast }: { search: string; showToast: (m: str
 
 // ── Usuários ──────────────────────────────────────────────────────────────────
 
-function UsuariosTab({ search, showToast }: { search: string; showToast: (m: string, t?: string) => void }) {
+function UsersTab({ search, showToast }: { search: string; showToast: (m: string, t?: string) => void }) {
   const qc = useQueryClient()
   const { data: users = [] } = useQuery<UserDto[]>({ queryKey: ['users'], queryFn: async () => (await api.get('/users')).data })
   const filtered = users.filter(u => !search || u.name.toLowerCase().includes(search.toLowerCase()))
 
-  const emptyUser = { name: '', email: '', password: '', role: 'Garconete', permissions: [] as string[], isActive: true }
+  const emptyUser = { name: '', email: '', password: '', role: 'Waiter', permissions: [] as string[], isActive: true }
   const [modal, setModal] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
   const [form, setForm] = useState(emptyUser)
