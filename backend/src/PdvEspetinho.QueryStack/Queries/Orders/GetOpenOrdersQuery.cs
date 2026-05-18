@@ -92,12 +92,13 @@ public class GetOpenOrdersQuery(QueryDb queryDb)
     private static async Task<List<OrderItemDetailDto>> GetItemsAsync(NpgsqlConnection conn, Guid orderId)
     {
         var rows = await conn.QueryAsync(
-            "SELECT id, product_id, product_name, unit_price, quantity, goes_to_kitchen, status FROM order_items WHERE order_id = @id ORDER BY created_at",
+            "SELECT id, product_id, product_name, unit_price, quantity, goes_to_kitchen, note, status FROM order_items WHERE order_id = @id ORDER BY created_at",
             new { id = orderId });
 
         return rows.Select(r => new OrderItemDetailDto(
             (Guid)r.id, (Guid)r.product_id, (string)r.product_name,
             (decimal)r.unit_price, (int)r.quantity, (bool)r.goes_to_kitchen,
+            r.note is null ? null : (string)r.note,
             (string)r.status, (decimal)r.unit_price * (int)r.quantity)).ToList();
     }
 }

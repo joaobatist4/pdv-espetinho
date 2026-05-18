@@ -5,4 +5,4 @@ namespace PdvEspetinho.Application.Features.Orders.Commands.AddOrderItems;
 
 public record AddOrderItemsCommand(Guid OrderId, List<OrderItemInput> Items) : IRequest<Result>;
 
-public record OrderItemInput(Guid ProductId, int Quantity);
+public record OrderItemInput(Guid ProductId, int Quantity, string? Note = null);

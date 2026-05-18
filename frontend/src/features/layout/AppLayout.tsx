@@ -1,5 +1,6 @@
 import { Outlet, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../stores/auth.store'
+import { useCartStore } from '../../stores/cart.store'
 import { C, roleColors } from '../../lib/tokens'
 import type { Permission } from '../../types'
 
@@ -13,10 +14,14 @@ const navItems: { to: string; label: string; icon: string; permission: Permissio
 
 export default function AppLayout() {
   const { user, hasPermission, logout } = useAuthStore()
+  const { clearTable } = useCartStore()
   const navigate = useNavigate()
   const pathname = window.location.pathname
 
-  const handleNav = (to: string) => navigate(to)
+  const handleNav = (to: string) => {
+    if (to === '/') clearTable()
+    navigate(to)
+  }
   const handleLogout = () => { logout(); navigate('/login') }
 
   const rc = roleColors[user?.role ?? ''] ?? { bg: C.bg, text: C.textMid }

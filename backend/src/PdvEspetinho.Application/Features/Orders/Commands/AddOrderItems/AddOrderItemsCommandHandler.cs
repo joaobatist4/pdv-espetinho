@@ -31,7 +31,7 @@ public class AddOrderItemsCommandHandler(
 
         var orderItems = request.Items
             .Join(products, item => item.ProductId, product => product.Id,
-                (item, product) => OrderItem.Create(order.Id, product.Id, product.Name, product.Price, item.Quantity, product.GoesToKitchen))
+                (item, product) => OrderItem.Create(order.Id, product.Id, product.Name, product.Price, item.Quantity, product.GoesToKitchen, item.Note))
             .ToList();
 
         order.AddItems(orderItems);

@@ -54,6 +54,7 @@ export default function PdvPage() {
     addItem,
     removeItem,
     changeQty,
+    updateNote,
     clearItems,
   } = useCartStore();
 
@@ -486,111 +487,39 @@ export default function PdvPage() {
                     adjustOrderItem.isPending &&
                     adjustOrderItem.variables?.itemId === item.id;
                   return (
-                    <div
-                      key={item.id}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        marginBottom: 8,
-                      }}
-                    >
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 600,
-                            color: C.text,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {item.productName}
+                    <div key={item.id} style={{ marginBottom: 8 }}>
+                      {/* Linha 1: nome, badge, qty, total */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {item.productName}
+                          </div>
+                          <div style={{ fontSize: 11, color: C.textMid }}>
+                            {fmt(item.unitPrice)} un
+                          </div>
                         </div>
-                        <div style={{ fontSize: 11, color: C.textMid }}>
-                          {fmt(item.unitPrice)} un
+                        {item.goesToKitchen && (
+                          <Badge color={sc.bg} textColor={sc.text}>{sc.label}</Badge>
+                        )}
+                        {canEdit ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                            <button onClick={() => adjustOrderItem.mutate({ itemId: item.id, delta: -1 })} disabled={adjustOrderItem.isPending} style={{ ...qtyBtnStyle, background: C.dangerBg, borderColor: C.dangerBg, color: C.danger }}>−</button>
+                            <span style={{ fontSize: 13, fontWeight: 700, minWidth: 20, textAlign: 'center', color: isLoading ? C.textLight : C.text }}>{isLoading ? '…' : item.quantity}</span>
+                            <button onClick={() => adjustOrderItem.mutate({ itemId: item.id, delta: 1 })} disabled={adjustOrderItem.isPending} style={{ ...qtyBtnStyle }}>+</button>
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: 13, fontWeight: 700, color: C.textMid, minWidth: 24, textAlign: 'center' }}>{item.quantity}×</span>
+                        )}
+                        <div style={{ fontSize: 13, fontWeight: 700, color: C.text, minWidth: 48, textAlign: 'right' }}>
+                          {fmt(item.total)}
                         </div>
                       </div>
-                      {item.goesToKitchen && (
-                        <Badge color={sc.bg} textColor={sc.text}>
-                          {sc.label}
-                        </Badge>
-                      )}
-                      {canEdit ? (
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 4,
-                            flexShrink: 0,
-                          }}
-                        >
-                          <button
-                            onClick={() =>
-                              adjustOrderItem.mutate({
-                                itemId: item.id,
-                                delta: -1,
-                              })
-                            }
-                            disabled={adjustOrderItem.isPending}
-                            style={{
-                              ...qtyBtnStyle,
-                              background: C.dangerBg,
-                              borderColor: C.dangerBg,
-                              color: C.danger,
-                            }}
-                          >
-                            −
-                          </button>
-                          <span
-                            style={{
-                              fontSize: 13,
-                              fontWeight: 700,
-                              minWidth: 20,
-                              textAlign: "center",
-                              color: isLoading ? C.textLight : C.text,
-                            }}
-                          >
-                            {isLoading ? "…" : item.quantity}
-                          </span>
-                          <button
-                            onClick={() =>
-                              adjustOrderItem.mutate({
-                                itemId: item.id,
-                                delta: 1,
-                              })
-                            }
-                            disabled={adjustOrderItem.isPending}
-                            style={{ ...qtyBtnStyle }}
-                          >
-                            +
-                          </button>
+                      {/* Linha 2: observação em largura total */}
+                      {item.note && (
+                        <div style={{ fontSize: 11, color: C.amber, fontStyle: 'italic', marginTop: 3 }}>
+                          📝 {item.note}
                         </div>
-                      ) : (
-                        <span
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 700,
-                            color: C.textMid,
-                            minWidth: 24,
-                            textAlign: "center",
-                          }}
-                        >
-                          {item.quantity}×
-                        </span>
                       )}
-                      <div
-                        style={{
-                          fontSize: 13,
-                          fontWeight: 700,
-                          color: C.text,
-                          minWidth: 48,
-                          textAlign: "right",
-                        }}
-                      >
-                        {fmt(item.total)}
-                      </div>
                     </div>
                   );
                 })}
@@ -616,89 +545,36 @@ export default function PdvPage() {
                 <Empty icon="🛒" msg="Adicione itens ao pedido" />
               )}
               {items.map((item) => (
-                <div
-                  key={item.productId}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    marginBottom: 10,
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 600,
-                        color: C.text,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {item.productName}
+                <div key={item.productId} style={{ marginBottom: 10 }}>
+                  {/* Linha 1: nome, qty, total, remover */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {item.productName}
+                      </div>
+                      <div style={{ fontSize: 12, color: C.textMid }}>
+                        {fmt(item.unitPrice)} × {item.quantity}
+                      </div>
                     </div>
-                    <div style={{ fontSize: 12, color: C.textMid }}>
-                      {fmt(item.unitPrice)} × {item.quantity}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <button onClick={() => changeQty(item.productId, -1)} style={qtyBtnStyle}>−</button>
+                      <span style={{ fontSize: 14, fontWeight: 700, minWidth: 20, textAlign: 'center' }}>{item.quantity}</span>
+                      <button onClick={() => changeQty(item.productId, 1)} style={qtyBtnStyle}>+</button>
                     </div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text, minWidth: 48, textAlign: 'right' }}>
+                      {fmt(item.unitPrice * item.quantity)}
+                    </div>
+                    <button onClick={() => removeItem(item.productId)} style={{ width: 24, height: 24, border: 'none', borderRadius: 6, background: C.dangerBg, color: C.danger, cursor: 'pointer', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>×</button>
                   </div>
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 4 }}
-                  >
-                    <button
-                      onClick={() => changeQty(item.productId, -1)}
-                      style={qtyBtnStyle}
-                    >
-                      −
-                    </button>
-                    <span
-                      style={{
-                        fontSize: 14,
-                        fontWeight: 700,
-                        minWidth: 20,
-                        textAlign: "center",
-                      }}
-                    >
-                      {item.quantity}
-                    </span>
-                    <button
-                      onClick={() => changeQty(item.productId, 1)}
-                      style={qtyBtnStyle}
-                    >
-                      +
-                    </button>
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 700,
-                      color: C.text,
-                      minWidth: 48,
-                      textAlign: "right",
-                    }}
-                  >
-                    {fmt(item.unitPrice * item.quantity)}
-                  </div>
-                  <button
-                    onClick={() => removeItem(item.productId)}
-                    style={{
-                      width: 24,
-                      height: 24,
-                      border: "none",
-                      borderRadius: 6,
-                      background: C.dangerBg,
-                      color: C.danger,
-                      cursor: "pointer",
-                      fontSize: 13,
-                      fontWeight: 700,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                    }}
-                  >
-                    ×
-                  </button>
+                  {/* Linha 2: observação em largura total */}
+                  <textarea
+                    value={item.note ?? ''}
+                    onChange={e => updateNote(item.productId, e.target.value)}
+                    placeholder="Observação..."
+                    maxLength={300}
+                    rows={2}
+                    style={{ fontSize: 12, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, background: C.bg, outline: 'none', width: '100%', marginTop: 5, fontFamily: 'inherit', padding: '5px 8px', resize: 'none', lineHeight: 1.4, boxSizing: 'border-box' }}
+                  />
                 </div>
               ))}
             </div>

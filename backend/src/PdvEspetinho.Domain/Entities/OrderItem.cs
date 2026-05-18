@@ -11,6 +11,7 @@ public class OrderItem : Entity
     public decimal UnitPrice { get; private set; }
     public int Quantity { get; private set; }
     public bool GoesToKitchen { get; private set; }
+    public string? Note { get; private set; }
     public OrderItemStatus Status { get; private set; }
 
     private OrderItem() { }
@@ -21,7 +22,8 @@ public class OrderItem : Entity
         string productName,
         decimal unitPrice,
         int quantity,
-        bool goesToKitchen)
+        bool goesToKitchen,
+        string? note = null)
     {
         return new OrderItem
         {
@@ -31,6 +33,7 @@ public class OrderItem : Entity
             UnitPrice = unitPrice,
             Quantity = quantity,
             GoesToKitchen = goesToKitchen,
+            Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim(),
             Status = OrderItemStatus.Delivered
         };
     }

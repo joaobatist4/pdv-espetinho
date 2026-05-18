@@ -21,6 +21,7 @@ public record OrderItemDetailDto(
     decimal UnitPrice,
     int Quantity,
     bool GoesToKitchen,
+    string? Note,
     string Status,
     decimal Total);
 

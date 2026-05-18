@@ -21,6 +21,7 @@ public class OrderItemMapping : IEntityTypeConfiguration<OrderItem>
         builder.Property(i => i.UnitPrice).HasColumnName("unit_price").HasPrecision(10, 2);
         builder.Property(i => i.Quantity).HasColumnName("quantity");
         builder.Property(i => i.GoesToKitchen).HasColumnName("goes_to_kitchen");
+        builder.Property(i => i.Note).HasColumnName("note").HasMaxLength(300);
         builder.Property(i => i.Status).HasColumnName("status").HasConversion<string>();
     }
 }

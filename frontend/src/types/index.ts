@@ -34,6 +34,7 @@ export interface OrderItemDetailDto {
   unitPrice: number
   quantity: number
   goesToKitchen: boolean
+  note?: string
   status: OrderItemStatus
   total: number
 }
@@ -164,4 +165,5 @@ export interface CartItem {
   unitPrice: number
   quantity: number
   goesToKitchen: boolean
+  note?: string
 }

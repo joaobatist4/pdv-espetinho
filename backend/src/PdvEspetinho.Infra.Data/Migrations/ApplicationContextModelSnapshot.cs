@@ -120,6 +120,11 @@ namespace PdvEspetinho.Infra.Data.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("goes_to_kitchen");
 
+                    b.Property<string>("Note")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("note");
+
                     b.Property<Guid>("OrderId")
                         .HasColumnType("uuid")
                         .HasColumnName("order_id");
