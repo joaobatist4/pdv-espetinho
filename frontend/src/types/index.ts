@@ -124,13 +124,6 @@ export interface DashboardDto {
   dailyChart: { date: string; revenue: number; orderCount: number }[]
 }
 
-export interface KitchenTicketDto {
-  orderId: string
-  tableLabel: string
-  openedAt: string
-  items: { productName: string; quantity: number }[]
-}
-
 export interface OrderReportItemDto {
   id: string
   tableLabel: string
@@ -157,6 +150,13 @@ export interface OrderReportParams {
   search?: string
   page: number
   pageSize: number
+}
+
+export interface EmployeeDto {
+  id: string
+  name: string
+  matricula: string
+  isActive: boolean
 }
 
 export interface CartItem {

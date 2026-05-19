@@ -14,21 +14,3 @@ body {
   min-height: 100svh;
 }
 
-@media print {
-  body * {
-    visibility: hidden;
-  }
-  .print-area,
-  .print-area * {
-    visibility: visible;
-  }
-  .print-area {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 80mm;
-    padding: 8px;
-    font-size: 12px;
-    font-family: monospace;
-  }
-}

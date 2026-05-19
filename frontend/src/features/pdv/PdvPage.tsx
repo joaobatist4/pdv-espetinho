@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { tablesService } from "../../services/tables.service";
 import { ordersService } from "../../services/orders.service";
 import { productsService } from "../../services/products.service";
+import { employeesService } from "../../services/employees.service";
 import { useCartStore } from "../../stores/cart.store";
 import { C, tableStatusColors, orderItemStatusColors } from "../../lib/tokens";
 import {
@@ -17,7 +18,6 @@ import {
 } from "../../components/ui";
 import type { PaymentMethod } from "../../types";
 import { fmt, fmtElapsed } from "../../lib/utils";
-import KitchenTicketPrint from "./KitchenTicketPrint";
 
 const paymentMethods = [
   { value: "Cash", label: "💵 Dinheiro" },
@@ -48,6 +48,7 @@ export default function PdvPage() {
   const {
     selectedTableId,
     selectedOrderId,
+    selectedEmployeeId,
     items,
     setTable,
     clearTable,
@@ -64,7 +65,16 @@ export default function PdvPage() {
   const [payments, setPayments] = useState<
     { method: PaymentMethod; value: string }[]
   >([{ method: "Cash", value: "" }]);
-  const [printOrderId, setPrintOrderId] = useState<string | null>(null);
+
+  const [employeeModal, setEmployeeModal] = useState(false);
+  const [pendingTableId, setPendingTableId] = useState<string | null>(null);
+  const [matriculaInput, setMatriculaInput] = useState("");
+  const [matriculaError, setMatriculaError] = useState("");
+
+  const { data: employees = [] } = useQuery({
+    queryKey: ["employees"],
+    queryFn: employeesService.getAll,
+  });
 
   const { data: tables = [] } = useQuery({
     queryKey: ["tables"],
@@ -106,7 +116,7 @@ export default function PdvPage() {
     mutationFn: async (cartItems: typeof items) => {
       let orderId = selectedOrderId;
       if (!orderId) {
-        const created = await ordersService.create(selectedTableId!);
+        const created = await ordersService.create(selectedTableId!, selectedEmployeeId!);
         orderId = created.id;
       }
       await ordersService.addItems(orderId, cartItems);
@@ -114,7 +124,6 @@ export default function PdvPage() {
     },
     onSuccess: (orderId, cartItems) => {
       setTable(selectedTableId!, orderId);
-      if (cartItems.some((i) => i.goesToKitchen)) setPrintOrderId(orderId);
       clearItems();
       qc.invalidateQueries({ queryKey: ["tables"] });
       qc.invalidateQueries({ queryKey: ["order-detail", orderId] });
@@ -183,6 +192,83 @@ export default function PdvPage() {
     });
   }
 
+  // ── Modal de identificação do atendente ──
+  const employeeModalJsx = (
+    <Modal open={employeeModal} onClose={() => setEmployeeModal(false)} title="Identificação do atendente" width={360}>
+      <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+        <div>
+          <label style={{ fontSize: 13, fontWeight: 600, color: C.textMid, display: "block", marginBottom: 6 }}>
+            Matrícula
+          </label>
+          <input
+            autoFocus
+            value={matriculaInput}
+            onChange={e => {
+              const v = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 5);
+              setMatriculaInput(v);
+              setMatriculaError("");
+            }}
+            onKeyDown={e => {
+              if (e.key === "Enter") {
+                const found = employees.find(emp => emp.isActive && emp.matricula === matriculaInput);
+                if (!found) { setMatriculaError("Matrícula não encontrada ou funcionário inativo."); return; }
+                setTable(pendingTableId!, null, found.id);
+                setEmployeeModal(false);
+              }
+            }}
+            placeholder="Ex: A3K9Z"
+            style={{
+              width: "100%", boxSizing: "border-box",
+              border: `2px solid ${matriculaError ? C.danger : C.border}`,
+              borderRadius: 8, padding: "10px 14px",
+              fontSize: 22, fontWeight: 700, letterSpacing: 6,
+              fontFamily: "monospace", color: C.text,
+              background: C.bg, outline: "none", textAlign: "center",
+              textTransform: "uppercase",
+            }}
+          />
+          {matriculaError && (
+            <div style={{ fontSize: 12, color: C.danger, marginTop: 6 }}>{matriculaError}</div>
+          )}
+          {(() => {
+            const preview = matriculaInput.length === 5
+              ? employees.find(e => e.isActive && e.matricula === matriculaInput)
+              : null;
+            if (!preview) return null;
+            return (
+              <div style={{ marginTop: 10, padding: "10px 14px", borderRadius: 8, background: C.amberLight, border: `1px solid ${C.amber}44`, display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 34, height: 34, borderRadius: "50%", background: C.amber, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#fff", flexShrink: 0 }}>
+                  {preview.name.trim().split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase()}
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: C.text }}>{preview.name}</div>
+                  <div style={{ fontSize: 11, color: C.textMid }}>Funcionário encontrado ✓</div>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <Btn variant="secondary" onClick={() => setEmployeeModal(false)} style={{ flex: 1, justifyContent: "center" }}>
+            Cancelar
+          </Btn>
+          <Btn
+            style={{ flex: 1, justifyContent: "center" }}
+            onClick={() => {
+              const found = employees.find(emp => emp.isActive && emp.matricula === matriculaInput);
+              if (!found) { setMatriculaError("Matrícula não encontrada ou funcionário inativo."); return; }
+              setTable(pendingTableId!, null, found.id);
+              setEmployeeModal(false);
+            }}
+          >
+            Confirmar
+          </Btn>
+        </div>
+      </div>
+    </Modal>
+  );
+
   // ── Grade de mesas ──
   if (!selectedTableId) {
     return (
@@ -216,8 +302,14 @@ export default function PdvPage() {
                 key={t.id}
                 hover
                 onClick={() => {
-                  if (t.status === "Available") setTable(t.id, null);
-                  else if (t.currentOrderId) setTable(t.id, t.currentOrderId);
+                  if (t.status === "Available") {
+                    setPendingTableId(t.id);
+                    setMatriculaInput("");
+                    setMatriculaError("");
+                    setEmployeeModal(true);
+                  } else if (t.currentOrderId) {
+                    setTable(t.id, t.currentOrderId);
+                  }
                 }}
                 style={{ padding: 18, cursor: "pointer" }}
               >
@@ -272,6 +364,7 @@ export default function PdvPage() {
             );
           })}
         </div>
+        {employeeModalJsx}
         <ToastContainer />
       </div>
     );
@@ -571,7 +664,7 @@ export default function PdvPage() {
                     value={item.note ?? ''}
                     onChange={e => updateNote(item.productId, e.target.value)}
                     placeholder="Observação..."
-                    maxLength={300}
+                    maxLength={100}
                     rows={2}
                     style={{ fontSize: 12, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, background: C.bg, outline: 'none', width: '100%', marginTop: 5, fontFamily: 'inherit', padding: '5px 8px', resize: 'none', lineHeight: 1.4, boxSizing: 'border-box' }}
                   />
@@ -1025,12 +1118,7 @@ export default function PdvPage() {
         </div>
       </Modal>
 
-      {printOrderId && (
-        <KitchenTicketPrint
-          orderId={printOrderId}
-          onClose={() => setPrintOrderId(null)}
-        />
-      )}
+
       <ToastContainer />
     </div>
   );

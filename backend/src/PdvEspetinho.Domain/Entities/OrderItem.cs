@@ -33,7 +33,7 @@ public class OrderItem : Entity
             UnitPrice = unitPrice,
             Quantity = quantity,
             GoesToKitchen = goesToKitchen,
-            Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim(),
+            Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim()[..Math.Min(note.Trim().Length, 100)],
             Status = OrderItemStatus.Delivered
         };
     }

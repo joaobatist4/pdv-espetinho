@@ -8,6 +8,7 @@ public class Order : Entity
 {
     public Guid TableId { get; private set; }
     public Guid AttendantId { get; private set; }
+    public Guid? EmployeeId { get; private set; }
     public OrderStatus Status { get; private set; }
     public DateTime OpenedAt { get; private set; }
     public DateTime? ClosedAt { get; private set; }
@@ -20,12 +21,13 @@ public class Order : Entity
 
     private Order() { }
 
-    public static Order Create(Guid tableId, Guid attendantId)
+    public static Order Create(Guid tableId, Guid attendantId, Guid? employeeId = null)
     {
         var order = new Order
         {
             TableId = tableId,
             AttendantId = attendantId,
+            EmployeeId = employeeId,
             Status = OrderStatus.Open,
             OpenedAt = DateTime.UtcNow
         };

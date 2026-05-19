@@ -55,7 +55,7 @@ public class OrdersController(IMediator mediator, GetOpenOrdersQuery getOrdersQu
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateOrderRequest request, CancellationToken ct)
     {
-        var result = await mediator.Send(new CreateOrderCommand(request.TableId, CurrentUserId), ct);
+        var result = await mediator.Send(new CreateOrderCommand(request.TableId, CurrentUserId, request.EmployeeId), ct);
         if (result.IsFailed)
             return BadRequest(new { errors = result.Errors.Select(e => e.Message) });
 
@@ -113,7 +113,7 @@ public class OrdersController(IMediator mediator, GetOpenOrdersQuery getOrdersQu
     }
 }
 
-public record CreateOrderRequest(Guid TableId);
+public record CreateOrderRequest(Guid TableId, Guid EmployeeId);
 public record AdjustItemQuantityRequest(int Delta);
 public record OrderReportRequest(
     string? Status, DateOnly? DateFrom, DateOnly? DateTo,

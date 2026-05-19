@@ -4,8 +4,9 @@ import type { CartItem } from '../types'
 interface CartState {
   selectedTableId: string | null
   selectedOrderId: string | null
+  selectedEmployeeId: string | null
   items: CartItem[]
-  setTable: (tableId: string, orderId: string | null) => void
+  setTable: (tableId: string, orderId: string | null, employeeId?: string | null) => void
   clearTable: () => void
   addItem: (item: CartItem) => void
   removeItem: (productId: string) => void
@@ -17,9 +18,11 @@ interface CartState {
 export const useCartStore = create<CartState>((set) => ({
   selectedTableId: null,
   selectedOrderId: null,
+  selectedEmployeeId: null,
   items: [],
-  setTable: (tableId, orderId) => set({ selectedTableId: tableId, selectedOrderId: orderId }),
-  clearTable: () => set({ selectedTableId: null, selectedOrderId: null, items: [] }),
+  setTable: (tableId, orderId, employeeId = null) =>
+    set({ selectedTableId: tableId, selectedOrderId: orderId, selectedEmployeeId: employeeId }),
+  clearTable: () => set({ selectedTableId: null, selectedOrderId: null, selectedEmployeeId: null, items: [] }),
   addItem: (item) =>
     set((state) => {
       const existing = state.items.find((i) => i.productId === item.productId)

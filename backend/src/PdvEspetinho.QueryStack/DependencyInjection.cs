@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PdvEspetinho.QueryStack.Infrastructure;
 using PdvEspetinho.QueryStack.Queries.Categories;
+using PdvEspetinho.QueryStack.Queries.Employees;
 using PdvEspetinho.QueryStack.Queries.Dashboard;
 using PdvEspetinho.QueryStack.Queries.Orders;
 using PdvEspetinho.QueryStack.Queries.Products;
@@ -23,6 +24,7 @@ public static class DependencyInjection
         services.AddSingleton(new QueryDb(connectionString));
 
         services.AddScoped<GetCategoriesQuery>();
+        services.AddScoped<GetEmployeesQuery>();
         services.AddScoped<GetDashboardQuery>();
         services.AddScoped<GetTablesWithStatusQuery>();
         services.AddScoped<GetOpenOrdersQuery>();

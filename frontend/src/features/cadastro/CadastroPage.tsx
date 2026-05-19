@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { productsService } from '../../services/products.service'
+import { employeesService } from '../../services/employees.service'
 import api from '../../lib/api'
 import { C, roleColors } from '../../lib/tokens'
 import { Badge, Btn, Card, Modal, Input, Select, PageHeader, Empty, useToast } from '../../components/ui'
@@ -12,6 +13,7 @@ const tabs = [
   { id: 'supplies',   label: '🧂 Insumos' },
   { id: 'tables',     label: '🪑 Mesas' },
   { id: 'users',      label: '👥 Usuários' },
+  { id: 'employees',  label: '🪪 Funcionários' },
   { id: 'categories', label: '🏷️ Categorias' },
   { id: 'units',      label: '📐 Unidades' },
 ]
@@ -130,11 +132,95 @@ export default function CadastroPage() {
       {tab === 'supplies'   && <SuppliesTab    search={search} showToast={showToast} />}
       {tab === 'tables'     && <TablesTab      search={search} showToast={showToast} />}
       {tab === 'users'      && <UsersTab       search={search} showToast={showToast} />}
+      {tab === 'employees'  && <EmployeesTab   search={search} showToast={showToast} />}
       {tab === 'categories' && <CategoriesTab  search={search} showToast={showToast} />}
       {tab === 'units'      && <UnitsTab       search={search} showToast={showToast} />}
 
       <ToastContainer />
     </div>
+  )
+}
+
+// ── Funcionários ──────────────────────────────────────────────────────────────
+
+function EmployeesTab({ search, showToast }: { search: string; showToast: (m: string, t?: string) => void }) {
+  const qc = useQueryClient()
+  const { data: employees = [] } = useQuery({ queryKey: ['employees'], queryFn: employeesService.getAll })
+
+  const [modal, setModal] = useState(false)
+  const [editing, setEditing] = useState<string | null>(null)
+  const [name, setName] = useState('')
+
+  const filtered = employees.filter(e =>
+    e.name.toLowerCase().includes(search.toLowerCase()) ||
+    e.matricula.toLowerCase().includes(search.toLowerCase())
+  )
+
+  function openNew() { setEditing(null); setName(''); setModal(true) }
+  function openEdit(e: typeof employees[0]) { setEditing(e.id); setName(e.name); setModal(true) }
+
+  const save = useMutation({
+    mutationFn: () => editing
+      ? employeesService.update(editing, name)
+      : employeesService.create(name).then(() => {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['employees'] })
+      setModal(false)
+      showToast(editing ? '✅ Funcionário atualizado' : '✅ Funcionário criado')
+    },
+  })
+
+  const toggle = useMutation({
+    mutationFn: (id: string) => employeesService.toggle(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['employees'] }),
+  })
+
+  return (
+    <>
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Btn onClick={openNew}>+ Novo Funcionário</Btn>
+      </div>
+
+      {filtered.length === 0
+        ? <Empty msg="Nenhum funcionário encontrado." />
+        : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {filtered.map(e => (
+              <Card key={e.id} style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, opacity: e.isActive ? 1 : 0.5 }}>
+                <div style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 700, color: C.amber, background: C.amberLight, padding: '4px 10px', borderRadius: 6, flexShrink: 0 }}>
+                  {e.matricula}
+                </div>
+                <div style={{ flex: 1, fontWeight: 600, color: C.text }}>{e.name}</div>
+                <Badge style={{ background: e.isActive ? C.successBg : C.border, color: e.isActive ? C.success : C.textMid }}>
+                  {e.isActive ? 'Ativo' : 'Inativo'}
+                </Badge>
+                <Btn variant="secondary" onClick={() => openEdit(e)} style={{ padding: '4px 12px', fontSize: 12 }}>Editar</Btn>
+                <Btn variant="secondary" onClick={() => toggle.mutate(e.id)} style={{ padding: '4px 12px', fontSize: 12 }}>
+                  {e.isActive ? 'Desativar' : 'Ativar'}
+                </Btn>
+              </Card>
+            ))}
+          </div>
+        )
+      }
+
+      <Modal open={modal} onClose={() => setModal(false)} title={editing ? 'Editar Funcionário' : 'Novo Funcionário'} width={420}>
+        <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <Input label="Nome" value={name} onChange={v => setName(v)} placeholder="Nome completo" autoFocus />
+          {!editing && (
+            <p style={{ fontSize: 12, color: C.textMid, margin: 0, padding: '10px 14px', background: C.amberLight, borderRadius: 8 }}>
+              🪪 A matrícula de 5 caracteres será gerada automaticamente.
+            </p>
+          )}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingTop: 8 }}>
+            <Btn variant="secondary" onClick={() => setModal(false)}>Cancelar</Btn>
+            <Btn onClick={() => save.mutate()} disabled={save.isPending || !name.trim()}>
+              {save.isPending ? 'Salvando…' : editing ? 'Salvar' : 'Criar Funcionário'}
+            </Btn>
+          </div>
+        </div>
+      </Modal>
+    </>
   )
 }
 

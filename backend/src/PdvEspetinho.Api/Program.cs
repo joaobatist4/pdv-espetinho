@@ -9,6 +9,7 @@ using PdvEspetinho.Infra.Data;
 using PdvEspetinho.Infra.Data.Context;
 using PdvEspetinho.Infra.Data.Seed;
 using PdvEspetinho.Infra.Services;
+using PdvEspetinho.Infra.Services.Print;
 using PdvEspetinho.QueryStack;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,6 +24,8 @@ builder.Services.AddApplication();
 builder.Services.AddInfraData(builder.Configuration, builder.Environment.IsDevelopment());
 builder.Services.AddInfraServices();
 builder.Services.AddQueryStack(builder.Configuration);
+
+builder.Services.Configure<KitchenPrintOptions>(builder.Configuration.GetSection("KitchenPrint"));
 
 builder.Services.AddScoped<IJwtService, JwtService>();
 

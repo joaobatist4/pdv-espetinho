@@ -17,6 +17,7 @@ public class OrderMapping : IEntityTypeConfiguration<Order>
 
         builder.Property(o => o.TableId).HasColumnName("table_id").IsRequired();
         builder.Property(o => o.AttendantId).HasColumnName("attendant_id").IsRequired();
+        builder.Property(o => o.EmployeeId).HasColumnName("employee_id");
         builder.Property(o => o.Status).HasColumnName("status").HasConversion<string>();
         builder.Property(o => o.OpenedAt).HasColumnName("opened_at");
         builder.Property(o => o.ClosedAt).HasColumnName("closed_at");
