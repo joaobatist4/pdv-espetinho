@@ -32,6 +32,8 @@ public static class DependencyInjection
         services.AddScoped<IUnitRepository, UnitRepository>();
         services.AddScoped<ISupplyCategoryRepository, SupplyCategoryRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<EventDispatcher>();
+        services.AddScoped<MessageBus>();
 
         return services;
     }

@@ -7,6 +7,7 @@ using PdvEspetinho.Application.Features.Orders.Commands.AdjustOrderItemQuantity;
 using PdvEspetinho.Application.Features.Orders.Commands.CancelOrder;
 using PdvEspetinho.Application.Features.Orders.Commands.CloseOrder;
 using PdvEspetinho.Application.Features.Orders.Commands.CreateOrder;
+using PdvEspetinho.Application.Features.Orders.Commands.PrintBill;
 using PdvEspetinho.Application.Features.Orders.Commands.RemoveOrderItem;
 using PdvEspetinho.QueryStack.Queries.Orders;
 
@@ -100,6 +101,16 @@ public class OrdersController(IMediator mediator, GetOpenOrdersQuery getOrdersQu
             return BadRequest(new { errors = result.Errors.Select(e => e.Message) });
 
         return Ok(new { saleId = result.Value });
+    }
+
+    [HttpPost("{id:guid}/print-bill")]
+    public async Task<IActionResult> PrintBill(Guid id, CancellationToken ct)
+    {
+        var result = await mediator.Send(new PrintBillCommand(id), ct);
+        if (result.IsFailed)
+            return BadRequest(new { errors = result.Errors.Select(e => e.Message) });
+
+        return NoContent();
     }
 
     [HttpPost("{id:guid}/cancel")]

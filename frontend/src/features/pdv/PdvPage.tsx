@@ -122,7 +122,7 @@ export default function PdvPage() {
       await ordersService.addItems(orderId, cartItems);
       return orderId;
     },
-    onSuccess: (orderId, cartItems) => {
+    onSuccess: (orderId) => {
       setTable(selectedTableId!, orderId);
       clearItems();
       qc.invalidateQueries({ queryKey: ["tables"] });
@@ -154,6 +154,11 @@ export default function PdvPage() {
       qc.invalidateQueries({ queryKey: ["order-detail", selectedOrderId] });
       qc.invalidateQueries({ queryKey: ["tables"] });
     },
+  });
+
+  const printBill = useMutation({
+    mutationFn: (orderId: string) => ordersService.printBill(orderId),
+    onSuccess: () => showToast("🖨️ Conta enviada para impressão!"),
   });
 
   const cancelOrder = useMutation({
@@ -544,12 +549,35 @@ export default function PdvPage() {
             style={{
               padding: "16px 20px",
               borderBottom: `1px solid ${C.border}`,
-              fontWeight: 700,
-              fontSize: 15,
-              color: C.text,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
             }}
           >
-            🧾 Comanda — {table?.label}
+            <span style={{ fontWeight: 700, fontSize: 15, color: C.text }}>
+              🧾 Comanda — {table?.label}
+            </span>
+            {selectedOrderId && (
+              <button
+                onClick={() => printBill.mutate(selectedOrderId)}
+                disabled={printBill.isPending}
+                title="Imprimir conta"
+                style={{
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 7,
+                  background: C.surface,
+                  cursor: "pointer",
+                  padding: "4px 10px",
+                  fontSize: 13,
+                  color: C.textMid,
+                  fontFamily: "inherit",
+                  fontWeight: 600,
+                  opacity: printBill.isPending ? 0.5 : 1,
+                }}
+              >
+                🖨️ A conta
+              </button>
+            )}
           </div>
 
           <div style={{ flex: 1, overflow: "auto" }}>
@@ -598,7 +626,6 @@ export default function PdvPage() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
                             <button onClick={() => adjustOrderItem.mutate({ itemId: item.id, delta: -1 })} disabled={adjustOrderItem.isPending} style={{ ...qtyBtnStyle, background: C.dangerBg, borderColor: C.dangerBg, color: C.danger }}>−</button>
                             <span style={{ fontSize: 13, fontWeight: 700, minWidth: 20, textAlign: 'center', color: isLoading ? C.textLight : C.text }}>{isLoading ? '…' : item.quantity}</span>
-                            <button onClick={() => adjustOrderItem.mutate({ itemId: item.id, delta: 1 })} disabled={adjustOrderItem.isPending} style={{ ...qtyBtnStyle }}>+</button>
                           </div>
                         ) : (
                           <span style={{ fontSize: 13, fontWeight: 700, color: C.textMid, minWidth: 24, textAlign: 'center' }}>{item.quantity}×</span>

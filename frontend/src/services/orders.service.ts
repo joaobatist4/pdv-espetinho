@@ -56,4 +56,8 @@ export const ordersService = {
   cancel: async (orderId: string): Promise<void> => {
     await api.post(`/orders/${orderId}/cancel`)
   },
+
+  printBill: async (orderId: string): Promise<void> => {
+    await api.post(`/orders/${orderId}/print-bill`)
+  },
 }

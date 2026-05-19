@@ -14,7 +14,7 @@ public class RemoveOrderItemCommandHandler(
 {
     public async Task<Result> Handle(RemoveOrderItemCommand request, CancellationToken ct)
     {
-        var order = await orderRepository.GetByIdAsync(request.OrderId, ct);
+        var order = await orderRepository.GetByIdAsync(request.OrderId, OrderIncludes.Items, ct);
         if (order is null)
             return Result.Fail("Pedido não encontrado.");
 

@@ -1,5 +1,6 @@
 using FluentResults;
 using MediatR;
+using PdvEspetinho.Application.Common;
 using PdvEspetinho.Application.Common.Interfaces;
 using PdvEspetinho.Domain.Entities;
 using PdvEspetinho.Domain.Repositories;
@@ -10,6 +11,8 @@ public class CreateOrderCommandHandler(
     IOrderRepository orderRepository,
     ITableRepository tableRepository,
     IEmployeeRepository employeeRepository,
+    IUserRepository userRepository,
+    AuthenticatedUser authenticatedUser,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateOrderCommand, Result<Guid>>
 {
     public async Task<Result<Guid>> Handle(CreateOrderCommand request, CancellationToken ct)
@@ -26,7 +29,11 @@ public class CreateOrderCommandHandler(
         if (existing is not null)
             return Result.Ok(existing.Id);
 
-        var order = Order.Create(request.TableId, request.AttendantId, request.EmployeeId);
+        var attendant = await userRepository.GetByIdAsync(authenticatedUser.Id, ct);
+        if (attendant is null)
+            return Result.Fail<Guid>("Usuário autenticado não encontrado.");
+
+        var order = Order.Create(table, attendant, employee);
         await orderRepository.AddAsync(order, ct);
 
         await unitOfWork.CommitAsync(ct);

@@ -4,11 +4,14 @@ using PdvEspetinho.Domain.Events;
 
 namespace PdvEspetinho.Domain.Entities;
 
-public class Order : Entity
+public class Order : AggregateRoot
 {
     public Guid TableId { get; private set; }
+    public Table? Table { get; private set; }
     public Guid AttendantId { get; private set; }
+    public User Attendant { get; private set; }
     public Guid? EmployeeId { get; private set; }
+    public Employee? Employee { get; private set; }
     public OrderStatus Status { get; private set; }
     public DateTime OpenedAt { get; private set; }
     public DateTime? ClosedAt { get; private set; }
@@ -16,22 +19,22 @@ public class Order : Entity
     private readonly List<OrderItem> _items = [];
     public IReadOnlyList<OrderItem> Items => _items.AsReadOnly();
 
-    private readonly List<IDomainEvent> _domainEvents = [];
-    public IReadOnlyList<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
-
     private Order() { }
 
-    public static Order Create(Guid tableId, Guid attendantId, Guid? employeeId = null)
+    public static Order Create(Table table, User attendant, Employee? employee = null)
     {
         var order = new Order
         {
-            TableId = tableId,
-            AttendantId = attendantId,
-            EmployeeId = employeeId,
+            TableId = table.Id,
+            Table = table,
+            AttendantId = attendant.Id,
+            Attendant = attendant,
+            EmployeeId = employee?.Id,
+            Employee = employee,
             Status = OrderStatus.Open,
             OpenedAt = DateTime.UtcNow
         };
-        order._domainEvents.Add(new OrderCreatedEvent(order.Id, tableId, attendantId));
+        order.AddDomainEvent(new OrderCreatedEvent(order));
         return order;
     }
 
@@ -45,7 +48,7 @@ public class Order : Entity
             else
                 _items.Add(item);
         }
-        _domainEvents.Add(new OrderItemsAddedEvent(Id, TableId));
+        AddDomainEvent(new OrderItemsAddedEvent(items, this));
         SetUpdatedAt();
     }
 
@@ -77,7 +80,7 @@ public class Order : Entity
         var item = _items.FirstOrDefault(i => i.Id == itemId);
         if (item is null) return false;
         item.UpdateStatus(status);
-        _domainEvents.Add(new OrderItemStatusChangedEvent(Id, itemId, TableId, status));
+        AddDomainEvent(new OrderItemStatusChangedEvent(Id, itemId, TableId, status));
         SetUpdatedAt();
         return true;
     }
@@ -87,7 +90,7 @@ public class Order : Entity
         Status = OrderStatus.Closed;
         ClosedAt = DateTime.UtcNow;
         var total = _items.Sum(i => i.Total);
-        _domainEvents.Add(new OrderClosedEvent(Id, TableId, total));
+        AddDomainEvent(new OrderClosedEvent(Id, TableId, total));
         SetUpdatedAt();
     }
 
@@ -97,8 +100,6 @@ public class Order : Entity
         ClosedAt = DateTime.UtcNow;
         SetUpdatedAt();
     }
-
-    public void ClearDomainEvents() => _domainEvents.Clear();
 
     public decimal Total => _items.Sum(i => i.Total);
 }

@@ -15,7 +15,10 @@ public class AddOrderItemsCommandHandler(
 {
     public async Task<Result> Handle(AddOrderItemsCommand request, CancellationToken ct)
     {
-        var order = await orderRepository.GetByIdAsync(request.OrderId, ct);
+        var order = await orderRepository.GetByIdAsync(request.OrderId,
+                OrderIncludes.Items | OrderIncludes.Table | OrderIncludes.Attendant | OrderIncludes.Employee,
+                ct);
+
         if (order is null)
             return Result.Fail("Pedido não encontrado.");
 

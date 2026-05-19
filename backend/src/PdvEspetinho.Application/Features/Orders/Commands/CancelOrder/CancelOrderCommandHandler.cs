@@ -13,7 +13,7 @@ public class CancelOrderCommandHandler(
 {
     public async Task<Result> Handle(CancelOrderCommand request, CancellationToken ct)
     {
-        var order = await orderRepository.GetByIdAsync(request.OrderId, ct);
+        var order = await orderRepository.GetByIdAsync(request.OrderId, ct: ct);
         if (order is null)
             return Result.Fail("Pedido não encontrado.");
 

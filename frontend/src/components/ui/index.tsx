@@ -7,17 +7,19 @@ export function Badge({
   children,
   color = C.amberLight,
   textColor = C.amber,
+  style,
 }: {
   children: ReactNode
   color?: string
   textColor?: string
+  style?: CSSProperties
 }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center',
       padding: '2px 10px', borderRadius: 99,
       fontSize: 11, fontWeight: 700, letterSpacing: '.5px',
-      background: color, color: textColor,
+      background: color, color: textColor, ...style,
       whiteSpace: 'nowrap',
     }}>{children}</span>
   )

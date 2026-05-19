@@ -1,15 +1,18 @@
+using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using PdvEspetinho.Application;
+using PdvEspetinho.Application.Common;
 using PdvEspetinho.Application.Common.Interfaces;
+using PdvEspetinho.Application.Interfaces.Services;
+using PdvEspetinho.Api.Hubs;
 using PdvEspetinho.Api.Middleware;
 using PdvEspetinho.Api.Services;
 using PdvEspetinho.Infra.Data;
 using PdvEspetinho.Infra.Data.Context;
 using PdvEspetinho.Infra.Data.Seed;
 using PdvEspetinho.Infra.Services;
-using PdvEspetinho.Infra.Services.Print;
 using PdvEspetinho.QueryStack;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,9 +28,22 @@ builder.Services.AddInfraData(builder.Configuration, builder.Environment.IsDevel
 builder.Services.AddInfraServices();
 builder.Services.AddQueryStack(builder.Configuration);
 
-builder.Services.Configure<KitchenPrintOptions>(builder.Configuration.GetSection("KitchenPrint"));
-
+builder.Services.AddSignalR();
 builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.AddScoped<IOrderKitchenNotifier, KitchenHubNotifier>();
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<AuthenticatedUser>(sp =>
+{
+    var user = sp.GetRequiredService<IHttpContextAccessor>().HttpContext?.User;
+    return new AuthenticatedUser
+    {
+        Id = Guid.TryParse(user?.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : Guid.Empty,
+        Name = user?.FindFirstValue(ClaimTypes.Name) ?? string.Empty,
+        Email = user?.FindFirstValue(ClaimTypes.Email) ?? string.Empty,
+        Role = user?.FindFirstValue("role") ?? string.Empty,
+    };
+});
 
 var jwtSecret = builder.Configuration["Jwt:Secret"]
     ?? throw new InvalidOperationException("Jwt:Secret not configured.");
@@ -84,5 +100,6 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<KitchenHub>("/hubs/kitchen");
 
 app.Run();

@@ -15,7 +15,7 @@ public class CloseOrderCommandHandler(
 {
     public async Task<Result<Guid>> Handle(CloseOrderCommand request, CancellationToken ct)
     {
-        var order = await orderRepository.GetByIdAsync(request.OrderId, ct);
+        var order = await orderRepository.GetByIdAsync(request.OrderId, OrderIncludes.Items | OrderIncludes.Table | OrderIncludes.Attendant | OrderIncludes.Employee, ct);
         if (order is null)
             return Result.Fail<Guid>("Pedido não encontrado.");
 
@@ -31,7 +31,7 @@ public class CloseOrderCommandHandler(
 
         var sale = Sale.Create(
             order.Id,
-            request.AttendantId,
+            order.Attendant.Id,
             order.Total,
             request.Payments.Select(p => (p.Method, p.Amount)));
 

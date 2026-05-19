@@ -1,3 +1,5 @@
+using PdvEspetinho.Domain.Events;
+
 namespace PdvEspetinho.Domain.Common;
 
 public abstract class Entity
@@ -14,4 +16,13 @@ public abstract class Entity
     }
 
     protected void SetUpdatedAt() => UpdatedAt = DateTime.UtcNow;
+}
+
+public abstract class AggregateRoot : Entity
+{
+    private readonly List<IDomainEvent> _domainEvents = [];
+    public IReadOnlyList<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+
+    protected void AddDomainEvent(IDomainEvent eventItem) => _domainEvents.Add(eventItem);
+    public void ClearDomainEvents() => _domainEvents.Clear();
 }

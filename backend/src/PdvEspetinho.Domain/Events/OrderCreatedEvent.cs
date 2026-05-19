@@ -1,6 +1,8 @@
+using PdvEspetinho.Domain.Entities;
+
 namespace PdvEspetinho.Domain.Events;
 
-public record OrderCreatedEvent(Guid OrderId, Guid TableId, Guid AttendantId) : IDomainEvent
+public record OrderCreatedEvent(Order Order) : IDomainEvent
 {
     public DateTime OccurredAt { get; } = DateTime.UtcNow;
 }
